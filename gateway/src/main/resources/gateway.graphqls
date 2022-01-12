@@ -1,0 +1,42 @@
+schema {
+    mutation: Mutation
+    query: Query
+}
+
+type Query {
+    filter(request: FilterRequest!) : FilterResponse!
+}
+
+type Mutation {
+    update(request: UpdateRequest!) : UpdateResponse!
+}
+
+input FilterRequest {
+    id: Long!,
+    name: String!
+}
+
+type FilterResponse {
+    data: [FilterResponseData!]
+}
+
+type FilterResponseData {
+    id: Long!,
+    name: String!
+}
+
+input UpdateRequest {
+    data: [UpdateRequestData!]
+}
+
+input UpdateRequestData {
+    id: Long!
+    name: String!
+}
+
+type UpdateResponse {
+    id: Long!,
+    name: String!
+}
+
+scalar Long

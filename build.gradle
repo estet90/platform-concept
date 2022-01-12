@@ -1,0 +1,31 @@
+buildscript {
+    repositories {
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath "org.kordamp.gradle:jandex-gradle-plugin:0.11.0"
+        classpath "io.quarkus:gradle-application-plugin:2.6.2.Final"
+    }
+}
+
+allprojects {
+    apply plugin: "java"
+    apply plugin: "io.quarkus"
+
+    group "ru.craftysoft"
+    version "1.0.0"
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+
+    dependencies {
+        implementation platform("io.quarkus:quarkus-bom:2.6.2.Final")
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+}
+

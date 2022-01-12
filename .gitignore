@@ -1,0 +1,13 @@
+build/
+.idea/
+.ideaDataSources/
+dataSources/
+generated/
+gen/
+.gradle/
+out/
+*.ipr
+*.iws
+*.iml
+*.log
+*.uml
