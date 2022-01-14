@@ -1,8 +1,13 @@
 dependencies {
     implementation(
             "io.quarkus:quarkus-smallrye-context-propagation",
+            "io.quarkus:quarkus-jackson",
+            "io.quarkus:quarkus-config-yaml",
             "com.graphql-java:graphql-java-extended-scalars:17.0",
             "com.graphql-java:graphql-java-extended-validation:17.0",
             "io.vertx:vertx-web-graphql",
+            "io.vertx:vertx-grpc",
+            "com.google.protobuf:protobuf-java-util",
+            "io.grpc:grpc-services",
     )
 }

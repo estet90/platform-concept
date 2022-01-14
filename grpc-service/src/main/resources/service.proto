@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package ru.tsc.crm.authorization.api.proto;
+
+option java_multiple_files = true;
+
+service GrpcService {
+  rpc filter(FilterRequest) returns (FilterResponse);
+  rpc update(UpdateRequest) returns (UpdateResponse);
+}
+
+message FilterRequest {
+  int64 id = 1;
+  string name = 2;
+}
+
+message FilterResponse {
+  repeated FilterResponseData data = 1;
+}
+
+message FilterResponseData {
+  int64 id = 1;
+  string name = 2;
+}
+
+message UpdateRequest {
+  repeated UpdateRequestData data = 1;
+}
+
+message UpdateRequestData {
+  int64 id = 1;
+  string name = 2;
+}
+
+message UpdateResponse {
+  int64 id = 1;
+  string name = 2;
+}

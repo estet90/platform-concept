@@ -1,0 +1,41 @@
+plugins {
+    id "com.google.protobuf" version "0.8.16"
+}
+
+dependencies {
+    implementation(
+            "io.quarkus:quarkus-grpc"
+    )
+    protobuf files("src/main/resources")
+}
+
+def generatedProtoFilesPath = "${projectDir}/build/generated/sources/proto"
+protobuf {
+    generatedFilesBaseDir = "${generatedProtoFilesPath}"
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.19.2"
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:1.42.1"
+        }
+    }
+    generateProtoTasks {
+        all()*.plugins {
+            grpc
+        }
+    }
+}
+
+sourceSets.main.java {
+    srcDirs(
+            "${generatedProtoFilesPath}/main/java",
+            "${generatedProtoFilesPath}/main/grpc",
+    )
+}
+
+tasks.withType(Copy) {
+    filesMatching("**/*.proto") {
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    }
+}
