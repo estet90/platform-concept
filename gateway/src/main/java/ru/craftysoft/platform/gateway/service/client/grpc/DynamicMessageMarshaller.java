@@ -1,4 +1,4 @@
-package ru.craftysoft.platform.gateway;
+package ru.craftysoft.platform.gateway.service.client.grpc;
 
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.DynamicMessage;
@@ -22,7 +22,7 @@ public class DynamicMessageMarshaller implements Marshaller<DynamicMessage> {
                     .mergeFrom(inputStream, ExtensionRegistryLite.getEmptyRegistry())
                     .build();
         } catch (IOException e) {
-            throw new RuntimeException("Unable to merge from the supplied input stream", e);
+            throw new RuntimeException(e);
         }
     }
 

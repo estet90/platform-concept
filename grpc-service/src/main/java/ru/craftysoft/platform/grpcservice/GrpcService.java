@@ -1,29 +1,34 @@
 package ru.craftysoft.platform.grpcservice;
 
 import io.grpc.stub.StreamObserver;
-import ru.tsc.crm.authorization.api.proto.*;
+import ru.craftysoft.platform.grpcservice.proto.*;
 
 @io.quarkus.grpc.GrpcService
 public class GrpcService extends GrpcServiceGrpc.GrpcServiceImplBase {
 
     @Override
     public void filter(FilterRequest request, StreamObserver<FilterResponse> responseObserver) {
-        responseObserver.onNext(FilterResponse.newBuilder()
+        System.out.println("request bliat: " + request);
+        var response = FilterResponse.newBuilder()
                 .addData(FilterResponseData.newBuilder()
-                        .setId(1)
+                        .setId(1L)
                         .setName("test")
                         .build())
-                .build()
-        );
+                .build();
+        System.out.println("response nahuy: " + response);
+        responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
 
     @Override
     public void update(UpdateRequest request, StreamObserver<UpdateResponse> responseObserver) {
-        responseObserver.onNext(UpdateResponse.newBuilder()
-                .setId(1)
+        System.out.println("request bliat: " + request);
+        var response = UpdateResponse.newBuilder()
+                .setId(1L)
                 .setName("test")
-                .build());
+                .build();
+        System.out.println("response nahuy: " + response);
+        responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
 }

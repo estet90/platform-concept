@@ -7,17 +7,16 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import graphql.schema.DataFetchingEnvironment;
 import io.grpc.CallOptions;
-import io.grpc.stub.StreamObserver;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import ru.craftysoft.platform.gateway.service.client.grpc.DynamicGrpcClient;
 import ru.craftysoft.platform.gateway.service.client.grpc.ServerReflectionClient;
 
 import javax.enterprise.context.ApplicationScoped;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import java.util.Set;
+import java.util.function.Predicate;
 
 import static java.util.Optional.ofNullable;
 
@@ -26,105 +25,99 @@ public class Resolver {
 
     private final Map<String, DynamicGrpcClient> dynamicGrpcClients;
     private final Map<String, ServerReflectionClient> reflectionClients;
+    private final Set<String> ignoredServiceNames;
 
     public Resolver(Map<String, DynamicGrpcClient> dynamicGrpcClients, Map<String, ServerReflectionClient> reflectionClients) {
         this.dynamicGrpcClients = dynamicGrpcClients;
         this.reflectionClients = reflectionClients;
+        this.ignoredServiceNames = Set.of("grpc.health.v1.Health", "grpc.reflection.v1alpha.ServerReflection");
     }
 
-    public Future<String> handle(DataFetchingEnvironment environment) {
+    public Future<Map<String, Object>> handle(DataFetchingEnvironment environment) {
         var serverReflectionClient = reflectionClients.get("grpc-server");
-        String result = null;
+        var future = serverReflectionClient.listServices()
+                .thenCompose(services -> {
+                    System.out.println(services);
+                    var serviceName = services.stream()
+                            .filter(Predicate.not(ignoredServiceNames::contains))
+                            .findFirst()
+                            .orElseThrow();
+                    return serverReflectionClient.lookupService(serviceName)
+                            .thenCompose(descriptorSet -> {
+                                var fileDescriptor = extractFileDescriptorProto(descriptorSet);
+                                var serviceDescriptor = extractServiceDescriptorProto(fileDescriptor);
+                                var methodDescriptor = extractMethodDescriptorProto(environment, serviceDescriptor);
+                                var inputTypeNameParts = methodDescriptor.getInputType().split("\\.");
+                                var inputTypeName = inputTypeNameParts[inputTypeNameParts.length - 1];
+                                var outputTypeNameParts = methodDescriptor.getOutputType().split("\\.");
+                                var outputTypeName = outputTypeNameParts[outputTypeNameParts.length - 1];
+                                var inputTypeDescriptor = resolveTypeDescriptor(fileDescriptor, inputTypeName);
+                                var outputTypeDescriptor = resolveTypeDescriptor(fileDescriptor, outputTypeName);
+                                var requestBody = ofNullable(environment.getArgument("request"))
+                                        .map(JsonObject::mapFrom)
+                                        .map(JsonObject::encode)
+                                        .orElseThrow();
+                                var builder = resolveBuilder(inputTypeDescriptor, requestBody);
+                                var dynamicGrpcClient = dynamicGrpcClients.get("grpc-server");
+                                return dynamicGrpcClient.callUnary(builder.build(), CallOptions.DEFAULT, serviceName, methodDescriptor.getName(), inputTypeDescriptor, outputTypeDescriptor)
+                                        .thenApply(dynamicMessage -> {
+                                            String json;
+                                            try {
+                                                json = JsonFormat.printer().print(dynamicMessage);
+                                            } catch (InvalidProtocolBufferException e) {
+                                                throw new RuntimeException(e);
+                                            }
+                                            return new JsonObject(json).getMap();
+                                        });
+                            });
+                });
+        return Future.fromCompletionStage(future);
+    }
+
+    private Descriptors.Descriptor resolveTypeDescriptor(DescriptorProtos.FileDescriptorProto fileDescriptor, String typeName) {
         try {
-            var serviceName = serverReflectionClient.listServices().get().stream()
-                    .filter(s -> !"grpc.reflection.v1alpha.ServerReflection".equals(s))
-                    .findFirst()
-                    .orElseThrow();
-            var descriptorSet = serverReflectionClient.lookupService(serviceName).get();
-            var fileDescriptor = (DescriptorProtos.FileDescriptorProto) descriptorSet.getAllFields().values().stream()
-                    .findFirst()
-                    .map(List.class::cast)
-                    .orElseThrow()
-                    .stream()
-                    .findFirst()
-                    .map(DescriptorProtos.FileDescriptorProto.class::cast)
-                    .orElseThrow();
-            var serviceDescriptor = fileDescriptor.getAllFields().entrySet().stream()
-                    .filter(entry -> entry.getKey().getFullName().equals("google.protobuf.FileDescriptorProto.service"))
-                    .findFirst()
-                    .map(Map.Entry::getValue)
-                    .map(List.class::cast)
-                    .map(l -> l.get(0))
-                    .map(DescriptorProtos.ServiceDescriptorProto.class::cast)
-                    .orElseThrow();
-            var methodDescriptor = serviceDescriptor.getMethodList()
-                    .stream()
-                    .filter(methodDescriptorProto -> methodDescriptorProto.getName().equals(environment.getFieldDefinition().getName()))
-                    .findFirst()
-                    .orElseThrow();
-            var inputTypeNameParts = methodDescriptor.getInputType().split("\\.");
-            var inputTypeName = inputTypeNameParts[inputTypeNameParts.length - 1];
-            var outputTypeNameParts = methodDescriptor.getOutputType().split("\\.");
-            var outputTypeName = outputTypeNameParts[outputTypeNameParts.length - 1];
-            var inputTypeDescriptor = (DescriptorProtos.DescriptorProto) fileDescriptor.getAllFields().entrySet().stream()
-                    .filter(entry -> entry.getKey().getFullName().equals("google.protobuf.FileDescriptorProto.message_type"))
-                    .findFirst()
-                    .map(Map.Entry::getValue)
-                    .map(List.class::cast)
-                    .stream()
-                    .flatMap(Collection::stream)
-                    .map(DescriptorProtos.DescriptorProto.class::cast)
-                    .filter(descriptor -> ((DescriptorProtos.DescriptorProto) descriptor).getName().equals(inputTypeName))
-                    .findFirst()
-                    .orElseThrow();
-            var outputTypeDescriptor = (DescriptorProtos.DescriptorProto) fileDescriptor.getAllFields().entrySet().stream()
-                    .filter(entry -> entry.getKey().getFullName().equals("google.protobuf.FileDescriptorProto.message_type"))
-                    .findFirst()
-                    .map(Map.Entry::getValue)
-                    .map(List.class::cast)
-                    .stream()
-                    .flatMap(Collection::stream)
-                    .map(DescriptorProtos.DescriptorProto.class::cast)
-                    .filter(descriptor -> ((DescriptorProtos.DescriptorProto) descriptor).getName().equals(inputTypeName))
-                    .findFirst()
-                    .orElseThrow();
-            var dynamicGrpcClient = dynamicGrpcClients.get("grpc-server");
-            var requestBody = ofNullable(environment.getArgument("request"))
-                    .map(JsonObject::mapFrom)
-                    .map(JsonObject::encode)
-                    .orElseThrow();
-            var builder = DynamicMessage.newBuilder(Descriptors.FileDescriptor.buildFrom(fileDescriptor, new Descriptors.FileDescriptor[0]).findMessageTypeByName(inputTypeName));
-            JsonFormat.parser().merge(requestBody, builder);
-            var wrapper = new Object() {
-                DynamicMessage dynamicMessage;
-            };
-            dynamicGrpcClient.callUnary(builder.build(), new StreamObserver<>() {
-                private DynamicMessage dynamicMessage;
-
-                @Override
-                public void onNext(DynamicMessage dynamicMessage) {
-                    System.out.println("message bliat: " + dynamicMessage);
-                    this.dynamicMessage = dynamicMessage;
-                }
-
-                @Override
-                public void onError(Throwable throwable) {
-                    throwable.printStackTrace();
-                    throw new RuntimeException(throwable);
-                }
-
-                @Override
-                public void onCompleted() {
-                    wrapper.dynamicMessage = dynamicMessage;
-                }
-            }, CallOptions.DEFAULT, serviceName, methodDescriptor.getName(), inputTypeDescriptor.getDescriptorForType(), outputTypeDescriptor.getDescriptorForType()).get();
-            System.out.println("message nahuy: " + wrapper.dynamicMessage);
-            result = JsonFormat.printer().print(wrapper.dynamicMessage);
-            System.out.println(result);
-        } catch (InterruptedException | ExecutionException | InvalidProtocolBufferException | Descriptors.DescriptorValidationException e) {
-            e.printStackTrace();
+            return Descriptors.FileDescriptor.buildFrom(fileDescriptor, new Descriptors.FileDescriptor[0]).findMessageTypeByName(typeName);
+        } catch (Descriptors.DescriptorValidationException e) {
+            throw new RuntimeException(e);
         }
-        return Future.succeededFuture(result);
+    }
+
+    private DescriptorProtos.MethodDescriptorProto extractMethodDescriptorProto(DataFetchingEnvironment environment, DescriptorProtos.ServiceDescriptorProto serviceDescriptor) {
+        return serviceDescriptor.getMethodList()
+                .stream()
+                .filter(methodDescriptorProto -> methodDescriptorProto.getName().equals(environment.getFieldDefinition().getName()))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private DescriptorProtos.ServiceDescriptorProto extractServiceDescriptorProto(DescriptorProtos.FileDescriptorProto fileDescriptor) {
+        return (DescriptorProtos.ServiceDescriptorProto) fileDescriptor.getAllFields().entrySet().stream()
+                .filter(entry -> entry.getKey().getFullName().equals("google.protobuf.FileDescriptorProto.service"))
+                .findFirst()
+                .map(Map.Entry::getValue)
+                .map(List.class::cast)
+                .map(l -> l.get(0))
+                .orElseThrow();
+    }
+
+    private DescriptorProtos.FileDescriptorProto extractFileDescriptorProto(DescriptorProtos.FileDescriptorSet descriptorSet) {
+        return (DescriptorProtos.FileDescriptorProto) descriptorSet.getAllFields().values().stream()
+                .findFirst()
+                .map(List.class::cast)
+                .orElseThrow()
+                .stream()
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private DynamicMessage.Builder resolveBuilder(Descriptors.Descriptor inputTypeDescriptor, String requestBody) {
+        try {
+            var builder = DynamicMessage.newBuilder(inputTypeDescriptor);
+            JsonFormat.parser().merge(requestBody, builder);
+            return builder;
+        } catch (InvalidProtocolBufferException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

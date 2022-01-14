@@ -1,0 +1,4 @@
+quarkus:
+  grpc:
+    server:
+      enable-reflection-service: true

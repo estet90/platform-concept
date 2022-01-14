@@ -12,6 +12,9 @@ allprojects {
     apply plugin: "java"
     apply plugin: "io.quarkus"
 
+    sourceCompatibility = 16
+    targetCompatibility = 16
+
     group "ru.craftysoft"
     version "1.0.0"
 

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package ru.tsc.crm.authorization.api.proto;
+package ru.craftysoft.platform.grpcservice.proto;
 
 option java_multiple_files = true;
 
