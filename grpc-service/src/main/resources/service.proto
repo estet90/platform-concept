@@ -4,6 +4,8 @@ package ru.craftysoft.platform.grpcservice.proto;
 
 option java_multiple_files = true;
 
+import "wrapper.proto";
+
 service GrpcService {
   rpc filter(FilterRequest) returns (FilterResponse);
   rpc update(UpdateRequest) returns (UpdateResponse);
@@ -12,6 +14,7 @@ service GrpcService {
 message FilterRequest {
   int64 id = 1;
   string name = 2;
+  Wrapper wrapper = 3;
 }
 
 message FilterResponse {

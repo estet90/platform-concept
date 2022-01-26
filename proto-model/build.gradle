@@ -1,37 +1,26 @@
 plugins {
-    id "com.google.protobuf" version "0.8.16"
+    id "java-library"
+    id "com.google.protobuf" version "0.8.18"
 }
 
 dependencies {
-    implementation(
-            "io.quarkus:quarkus-grpc"
+    api(
+            "com.google.protobuf:protobuf-java-util",
     )
     protobuf files("src/main/resources")
 }
 
 def generatedProtoFilesPath = "${projectDir}/build/generated/sources/proto"
+
 protobuf {
     generatedFilesBaseDir = "${generatedProtoFilesPath}"
     protoc {
         artifact = "com.google.protobuf:protoc:$protobufVersion"
     }
-    plugins {
-        grpc {
-            artifact = "io.grpc:protoc-gen-grpc-java:1.42.1"
-        }
-    }
-    generateProtoTasks {
-        all()*.plugins {
-            grpc
-        }
-    }
 }
 
 sourceSets.main.java {
-    srcDirs(
-            "${generatedProtoFilesPath}/main/java",
-            "${generatedProtoFilesPath}/main/grpc",
-    )
+    srcDirs("${generatedProtoFilesPath}/main/java")
 }
 
 tasks.withType(Copy) {

@@ -12,7 +12,6 @@ import graphql.validation.constraints.standard.SizeConstraint;
 import graphql.validation.rules.OnValidationErrorStrategy;
 import graphql.validation.rules.ValidationRules;
 import graphql.validation.schemawiring.ValidationSchemaWiring;
-import io.vertx.core.Vertx;
 import io.vertx.ext.web.handler.graphql.schema.VertxDataFetcher;
 import ru.craftysoft.platform.gateway.Resolver;
 
@@ -85,11 +84,5 @@ public class GraphQlConfiguration {
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         return builder.dataFetchers(dataFetcherMap);
-    }
-
-    @ApplicationScoped
-    @Named("applicationVertx")
-    public Vertx applicationVertx() {
-        return Vertx.vertx();
     }
 }

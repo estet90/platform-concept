@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package ru.craftysoft.proto;
+
+option java_package = "ru.craftysoft.proto";
+option java_multiple_files = true;
+
+import "google/protobuf/struct.proto";
+
+message NullableDouble {
+  oneof ValueOrNull {
+    double value = 1;
+    google.protobuf.NullValue nullValue = 2;
+  }
+}
+
+message NullableFloat {
+  oneof ValueOrNull {
+    float value = 1;
+    google.protobuf.NullValue nullValue = 2;
+  }
+}
+
+message NullableInt64 {
+  oneof ValueOrNull {
+    int64 value = 1;
+    google.protobuf.NullValue nullValue = 2;
+  }
+}
+
+message NullableUInt64 {
+  oneof ValueOrNull {
+    uint64 value = 1;
+    google.protobuf.NullValue nullValue = 2;
+  }
+}
+
+message NullableInt32 {
+  oneof ValueOrNull {
+    int32 value = 1;
+    google.protobuf.NullValue nullValue = 2;
+  }
+}
+
+message NullableUInt32 {
+  oneof ValueOrNull {
+    uint32 value = 1;
+    google.protobuf.NullValue nullValue = 2;
+  }
+}
+
+message NullableBool {
+  oneof ValueOrNull {
+    bool value = 1;
+    google.protobuf.NullValue nullValue = 2;
+  }
+}
+
+message NullableString {
+  oneof ValueOrNull {
+    string value = 1;
+    google.protobuf.NullValue nullValue = 2;
+  }
+}
+
+message NullableBytes {
+  oneof ValueOrNull {
+    bytes value = 1;
+    google.protobuf.NullValue nullValue = 2;
+  }
+}

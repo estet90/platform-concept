@@ -3,6 +3,7 @@ package ru.craftysoft.platform.gateway.service.client.grpc;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
 import com.google.protobuf.DescriptorProtos.FileDescriptorSet;
+import com.google.protobuf.Descriptors;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.Channel;
 import io.grpc.reflection.v1alpha.*;
@@ -93,20 +94,16 @@ public class ServerReflectionClient {
         private final Map<String, FileDescriptorProto> resolvedDescriptors;
         private StreamObserver<ServerReflectionRequest> requestStream;
 
-        private int outstandingRequests;
-
         private LookupServiceHandler(String serviceName) {
             this.serviceName = serviceName;
             this.resultFuture = new CompletableFuture<>();
             this.resolvedDescriptors = new HashMap<>();
             this.requestedDescriptors = new HashSet<>();
-            this.outstandingRequests = 0;
         }
 
         CompletableFuture<FileDescriptorSet> start(StreamObserver<ServerReflectionRequest> requestStream) {
             this.requestStream = requestStream;
             requestStream.onNext(requestForSymbol(serviceName));
-            ++outstandingRequests;
             return resultFuture;
         }
 
@@ -120,6 +117,10 @@ public class ServerReflectionClient {
                         resolvedDescriptors.put(d.getName(), d);
                         processDependencies(d);
                     });
+                    resultFuture.complete(FileDescriptorSet.newBuilder()
+                            .addAllFile(resolvedDescriptors.values())
+                            .build());
+                    requestStream.onCompleted();
                 }
                 default -> logger.warn("Got unknown reflection response type: " + responseCase);
             }
@@ -151,23 +152,12 @@ public class ServerReflectionClient {
         }
 
         private void processDependencies(FileDescriptorProto fileDescriptor) {
-            logger.debug("Processing deps of descriptor: " + fileDescriptor.getName());
             fileDescriptor.getDependencyList().forEach(dep -> {
                 if (!resolvedDescriptors.containsKey(dep) && !requestedDescriptors.contains(dep)) {
                     requestedDescriptors.add(dep);
-                    ++outstandingRequests;
                     requestStream.onNext(requestForDescriptor(dep));
                 }
             });
-
-            --outstandingRequests;
-            if (outstandingRequests == 0) {
-                logger.debug("Retrieved service definition for [{}] by reflection", serviceName);
-                resultFuture.complete(FileDescriptorSet.newBuilder()
-                        .addAllFile(resolvedDescriptors.values())
-                        .build());
-                requestStream.onCompleted();
-            }
         }
 
         private static ServerReflectionRequest requestForDescriptor(String name) {

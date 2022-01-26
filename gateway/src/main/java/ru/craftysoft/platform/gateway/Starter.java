@@ -12,27 +12,20 @@ import javax.inject.Named;
 @ApplicationScoped
 public class Starter {
 
-    private final Vertx applicationVertx;
+    private final Vertx vertx;
     private final MainVerticle mainVerticle;
 
-    public Starter(@Named("applicationVertx") Vertx applicationVertx,
-                   @Named("mainVerticle") MainVerticle mainVerticle) {
-        this.applicationVertx = applicationVertx;
+    public Starter(Vertx vertx, @Named("mainVerticle") MainVerticle mainVerticle) {
+        this.vertx = vertx;
         this.mainVerticle = mainVerticle;
     }
 
     public void start(@Observes StartupEvent event) {
-        applicationVertx.deployVerticle(mainVerticle);
-//        applicationVertx.deployVerticle(MainVerticle.class, new DeploymentOptions().setInstances(4), new Handler<AsyncResult<String>>() {
-//            @Override
-//            public void handle(AsyncResult<String> event) {
-//
-//            }
-//        });
+        vertx.deployVerticle(mainVerticle);
     }
 
     public void stop(@Observes ShutdownEvent event) {
-        applicationVertx.close(asyncResult -> {
+        vertx.close(asyncResult -> {
             if (asyncResult.failed()) {
                 asyncResult.cause().printStackTrace();
             } else {

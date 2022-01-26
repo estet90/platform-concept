@@ -1,4 +1,5 @@
 rootProject.name = 'platform-concept'
 include 'gateway'
 include 'grpc-service'
+include 'proto-model'
 

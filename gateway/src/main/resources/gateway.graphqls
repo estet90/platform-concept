@@ -12,8 +12,14 @@ type Mutation {
 }
 
 input FilterRequest {
-    id: Long!,
+    id: Long!
     name: String!
+    wrapper: Wrapper!
+}
+
+input Wrapper {
+    dateTime: DateTime!
+    description: String
 }
 
 type FilterResponse {
@@ -21,7 +27,7 @@ type FilterResponse {
 }
 
 type FilterResponseData {
-    id: Long!,
+    id: Long!
     name: String!
 }
 
@@ -35,8 +41,9 @@ input UpdateRequestData {
 }
 
 type UpdateResponse {
-    id: Long!,
+    id: Long!
     name: String!
 }
 
 scalar Long
+scalar DateTime

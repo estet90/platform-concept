@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package ru.craftysoft.platform.grpcservice.proto;
+
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+import "ru/craftysoft/proto/wrappers.proto";
+
+message Wrapper {
+  google.protobuf.Timestamp dateTime = 1;
+  ru.craftysoft.proto.NullableString description = 2;
+}

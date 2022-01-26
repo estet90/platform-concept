@@ -9,16 +9,14 @@ import graphql.schema.DataFetchingEnvironment;
 import io.grpc.CallOptions;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
+import ru.craftysoft.platform.gateway.rejoiner.GqlInputConverter;
 import ru.craftysoft.platform.gateway.service.client.grpc.DynamicGrpcClient;
 import ru.craftysoft.platform.gateway.service.client.grpc.ServerReflectionClient;
 
 import javax.enterprise.context.ApplicationScoped;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
-
-import static java.util.Optional.ofNullable;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class Resolver {
@@ -44,22 +42,24 @@ public class Resolver {
                             .orElseThrow();
                     return serverReflectionClient.lookupService(serviceName)
                             .thenCompose(descriptorSet -> {
-                                var fileDescriptor = extractFileDescriptorProto(descriptorSet);
-                                var serviceDescriptor = extractServiceDescriptorProto(fileDescriptor);
+                                var fileDescriptorsWithDependencies = descriptorSet.getFileList().stream()
+                                        .collect(Collectors.toMap(f -> f, f -> (Set<String>) new HashSet<>(f.getDependencyList())));
+                                var wrapper = new FileDescriptorHolder();
+                                resolveFullFileDescriptor(fileDescriptorsWithDependencies, new HashMap<>(), new HashSet<>(), wrapper);
+                                var fileDescriptorProto = wrapper.fileDescriptor.toProto();
+                                var serviceDescriptor = extractServiceDescriptorProto(fileDescriptorProto);
                                 var methodDescriptor = extractMethodDescriptorProto(environment, serviceDescriptor);
                                 var inputTypeNameParts = methodDescriptor.getInputType().split("\\.");
                                 var inputTypeName = inputTypeNameParts[inputTypeNameParts.length - 1];
                                 var outputTypeNameParts = methodDescriptor.getOutputType().split("\\.");
                                 var outputTypeName = outputTypeNameParts[outputTypeNameParts.length - 1];
-                                var inputTypeDescriptor = resolveTypeDescriptor(fileDescriptor, inputTypeName);
-                                var outputTypeDescriptor = resolveTypeDescriptor(fileDescriptor, outputTypeName);
-                                var requestBody = ofNullable(environment.getArgument("request"))
-                                        .map(JsonObject::mapFrom)
-                                        .map(JsonObject::encode)
-                                        .orElseThrow();
-                                var builder = resolveBuilder(inputTypeDescriptor, requestBody);
+                                var inputTypeDescriptor = resolveTypeDescriptor(fileDescriptorProto, wrapper.fileDescriptor, inputTypeName);
+                                var outputTypeDescriptor = resolveTypeDescriptor(fileDescriptorProto, wrapper.fileDescriptor, outputTypeName);
+                                var builder = DynamicMessage.newBuilder(inputTypeDescriptor);
+                                var gqlInputConverter = new GqlInputConverter.Builder().add(inputTypeDescriptor.getFile()).build();
+                                var message = (DynamicMessage) gqlInputConverter.createProtoBuf(inputTypeDescriptor, builder, environment.getArgument("request"));
                                 var dynamicGrpcClient = dynamicGrpcClients.get("grpc-server");
-                                return dynamicGrpcClient.callUnary(builder.build(), CallOptions.DEFAULT, serviceName, methodDescriptor.getName(), inputTypeDescriptor, outputTypeDescriptor)
+                                return dynamicGrpcClient.callUnary(message, CallOptions.DEFAULT, serviceName, methodDescriptor.getName(), inputTypeDescriptor, outputTypeDescriptor)
                                         .thenApply(dynamicMessage -> {
                                             String json;
                                             try {
@@ -74,11 +74,88 @@ public class Resolver {
         return Future.fromCompletionStage(future);
     }
 
-    private Descriptors.Descriptor resolveTypeDescriptor(DescriptorProtos.FileDescriptorProto fileDescriptor, String typeName) {
+    private Descriptors.Descriptor resolveTypeDescriptor(DescriptorProtos.FileDescriptorProto fileDescriptorProto,
+                                                         Descriptors.FileDescriptor fileDescriptor,
+                                                         String typeName) {
         try {
-            return Descriptors.FileDescriptor.buildFrom(fileDescriptor, new Descriptors.FileDescriptor[0]).findMessageTypeByName(typeName);
+            return Descriptors.FileDescriptor.buildFrom(fileDescriptorProto, fileDescriptor.getDependencies().toArray(new Descriptors.FileDescriptor[]{}))
+                    .findMessageTypeByName(typeName);
         } catch (Descriptors.DescriptorValidationException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void resolveFullFileDescriptor(Map<DescriptorProtos.FileDescriptorProto, Set<String>> fileDescriptorsWithDependencies,
+                                           Map<String, Descriptors.FileDescriptor> completedFileDescriptors,
+                                           Set<String> dependencies,
+                                           FileDescriptorHolder result) {
+        if (dependencies.isEmpty()) {
+            fileDescriptorsWithDependencies.entrySet().removeIf(entry -> {
+                if (entry.getValue().isEmpty()) {
+                    var descriptorProto = entry.getKey();
+                    try {
+                        var addedFileDescriptor = Descriptors.FileDescriptor.buildFrom(descriptorProto, new Descriptors.FileDescriptor[]{});
+                        completedFileDescriptors.put(descriptorProto.getName(), addedFileDescriptor);
+                        result.fileDescriptor = addedFileDescriptor;
+                        return true;
+                    } catch (Descriptors.DescriptorValidationException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                return false;
+            });
+            var completedFileDescriptorsNames = completedFileDescriptors.keySet();
+            fileDescriptorsWithDependencies.entrySet().removeIf(entry -> {
+                if (completedFileDescriptorsNames.containsAll(entry.getValue())) {
+                    var descriptorProto = entry.getKey();
+                    var currentDependencies = entry.getValue().stream()
+                            .map(completedFileDescriptors::get)
+                            .toArray(Descriptors.FileDescriptor[]::new);
+                    try {
+                        var addedFileDescriptor = Descriptors.FileDescriptor.buildFrom(descriptorProto, currentDependencies);
+                        completedFileDescriptors.put(descriptorProto.getName(), addedFileDescriptor);
+                        result.fileDescriptor = addedFileDescriptor;
+                        return true;
+                    } catch (Descriptors.DescriptorValidationException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                return false;
+            });
+            if (!fileDescriptorsWithDependencies.isEmpty()) {
+                resolveFullFileDescriptor(
+                        fileDescriptorsWithDependencies,
+                        completedFileDescriptors,
+                        fileDescriptorsWithDependencies.entrySet().iterator().next().getValue(),
+                        result
+                );
+            }
+        } else {
+            fileDescriptorsWithDependencies.entrySet().removeIf(entry -> {
+                if (dependencies.containsAll(entry.getValue())) {
+                    var descriptorProto = entry.getKey();
+                    var currentDependencies = entry.getValue().stream()
+                            .map(completedFileDescriptors::get)
+                            .toArray(Descriptors.FileDescriptor[]::new);
+                    try {
+                        var addedFileDescriptor = Descriptors.FileDescriptor.buildFrom(descriptorProto, currentDependencies);
+                        completedFileDescriptors.put(descriptorProto.getName(), addedFileDescriptor);
+                        result.fileDescriptor = addedFileDescriptor;
+                        return true;
+                    } catch (Descriptors.DescriptorValidationException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                return false;
+            });
+            if (!fileDescriptorsWithDependencies.isEmpty()) {
+                resolveFullFileDescriptor(
+                        fileDescriptorsWithDependencies,
+                        completedFileDescriptors,
+                        fileDescriptorsWithDependencies.entrySet().iterator().next().getValue(),
+                        result
+                );
+            }
         }
     }
 
@@ -90,8 +167,8 @@ public class Resolver {
                 .orElseThrow();
     }
 
-    private DescriptorProtos.ServiceDescriptorProto extractServiceDescriptorProto(DescriptorProtos.FileDescriptorProto fileDescriptor) {
-        return (DescriptorProtos.ServiceDescriptorProto) fileDescriptor.getAllFields().entrySet().stream()
+    private DescriptorProtos.ServiceDescriptorProto extractServiceDescriptorProto(DescriptorProtos.FileDescriptorProto fileDescriptorProto) {
+        return (DescriptorProtos.ServiceDescriptorProto) fileDescriptorProto.getAllFields().entrySet().stream()
                 .filter(entry -> entry.getKey().getFullName().equals("google.protobuf.FileDescriptorProto.service"))
                 .findFirst()
                 .map(Map.Entry::getValue)
@@ -100,24 +177,8 @@ public class Resolver {
                 .orElseThrow();
     }
 
-    private DescriptorProtos.FileDescriptorProto extractFileDescriptorProto(DescriptorProtos.FileDescriptorSet descriptorSet) {
-        return (DescriptorProtos.FileDescriptorProto) descriptorSet.getAllFields().values().stream()
-                .findFirst()
-                .map(List.class::cast)
-                .orElseThrow()
-                .stream()
-                .findFirst()
-                .orElseThrow();
-    }
-
-    private DynamicMessage.Builder resolveBuilder(Descriptors.Descriptor inputTypeDescriptor, String requestBody) {
-        try {
-            var builder = DynamicMessage.newBuilder(inputTypeDescriptor);
-            JsonFormat.parser().merge(requestBody, builder);
-            return builder;
-        } catch (InvalidProtocolBufferException e) {
-            throw new RuntimeException(e);
-        }
+    private static class FileDescriptorHolder {
+        private Descriptors.FileDescriptor fileDescriptor;
     }
 
 }

@@ -17,20 +17,19 @@ import javax.inject.Named;
 @Named("mainVerticle")
 public class MainVerticle extends AbstractVerticle {
 
-    private final Vertx applicationVertx;
+    private final Vertx vertx;
     private final GraphQL graphQl;
 
     private HttpServer server;
 
-    public MainVerticle(@Named("applicationVertx") Vertx applicationVertx,
-                        @Named("graphQl") GraphQL graphQl) {
-        this.applicationVertx = applicationVertx;
+    public MainVerticle(Vertx vertx, @Named("graphQl") GraphQL graphQl) {
+        this.vertx = vertx;
         this.graphQl = graphQl;
     }
 
     @Override
     public void start() {
-        var router = Router.router(applicationVertx);
+        var router = Router.router(vertx);
         var bodyHandler = BodyHandler.create();
         router.post().handler(bodyHandler);
         var options = new GraphQLHandlerOptions()
@@ -39,7 +38,7 @@ public class MainVerticle extends AbstractVerticle {
         var graphQlHandler = GraphQLHandler.create(graphQl, options);
         router.post("/graphql")
                 .handler(graphQlHandler);
-        server = applicationVertx.createHttpServer()
+        server = vertx.createHttpServer()
                 .requestHandler(router);
         server.listen(8080)
                 .onComplete(httpServerAsyncResult -> {
