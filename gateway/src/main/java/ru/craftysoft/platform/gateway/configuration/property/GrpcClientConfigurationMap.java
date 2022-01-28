@@ -1,4 +1,4 @@
-package ru.craftysoft.platform.gateway.configuration;
+package ru.craftysoft.platform.gateway.configuration.property;
 
 import io.smallrye.config.ConfigMapping;
 

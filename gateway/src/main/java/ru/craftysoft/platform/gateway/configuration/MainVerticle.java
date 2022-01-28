@@ -9,6 +9,8 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 import io.vertx.ext.web.handler.graphql.GraphQLHandlerOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
@@ -21,6 +23,8 @@ public class MainVerticle extends AbstractVerticle {
     private final GraphQL graphQl;
 
     private HttpServer server;
+
+    private static final Logger logger = LoggerFactory.getLogger(MainVerticle.class);
 
     public MainVerticle(Vertx vertx, @Named("graphQl") GraphQL graphQl) {
         this.vertx = vertx;
@@ -43,9 +47,7 @@ public class MainVerticle extends AbstractVerticle {
         server.listen(8080)
                 .onComplete(httpServerAsyncResult -> {
                     if (httpServerAsyncResult.failed()) {
-                        httpServerAsyncResult.cause().printStackTrace();
-                    } else {
-                        System.out.println("zaebis");
+                        logger.error("Ошибка при запуске: ", httpServerAsyncResult.cause());
                     }
                 });
     }

@@ -2,6 +2,7 @@ package ru.craftysoft.platform.gateway.builder;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.Message;
 
 import javax.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
@@ -12,16 +13,10 @@ import java.util.Map;
 @ApplicationScoped
 public class ResponseBuilder {
 
-    public Map<String, Object> build(DynamicMessage dynamicMessage) {
+    public Map<String, Object> build(Message dynamicMessage) {
         var result = new HashMap<String, Object>();
-        var fieldDescriptors = dynamicMessage.getDescriptorForType().getFields();
-        for (var fieldDescriptor : fieldDescriptors) {
-            if (dynamicMessage.hasField(fieldDescriptor)) {
-                var o = dynamicMessage.getField(fieldDescriptor);
-                fillResponse(fieldDescriptor, o, result);
-            }
-        }
-        return (Map<String, Object>) result;
+        dynamicMessage.getAllFields().forEach(((fieldDescriptor, o) -> fillResponse(fieldDescriptor, o, result)));
+        return result;
     }
 
     private void fillResponse(Descriptors.FieldDescriptor fieldDescriptor, Object object, HashMap<String, Object> result) {
@@ -32,13 +27,7 @@ public class ResponseBuilder {
                 for (var value : values) {
                     if (value instanceof DynamicMessage dynamicMessage) {
                         var intermediateResult = new HashMap<String, Object>();
-                        var fieldDescriptors = dynamicMessage.getDescriptorForType().getFields();
-                        for (var fd : fieldDescriptors) {
-                            if (dynamicMessage.hasField(fieldDescriptor)) {
-                                var o = dynamicMessage.getField(fieldDescriptor);
-                                fillResponse(fd, o, intermediateResult);
-                            }
-                        }
+                        dynamicMessage.getAllFields().forEach(((fd, o) -> fillResponse(fd, o, intermediateResult)));
                         list.add(intermediateResult);
                     }
                 }
@@ -46,13 +35,7 @@ public class ResponseBuilder {
             } else if (fieldDescriptor.getType().equals(Descriptors.FieldDescriptor.Type.MESSAGE)) {
                 var dynamicMessage = (DynamicMessage) object;
                 var intermediateResult = new HashMap<String, Object>();
-                var fieldDescriptors = dynamicMessage.getDescriptorForType().getFields();
-                for (var fd : fieldDescriptors) {
-                    if (dynamicMessage.hasField(fieldDescriptor)) {
-                        var o = dynamicMessage.getField(fieldDescriptor);
-                        fillResponse(fd, o, intermediateResult);
-                    }
-                }
+                dynamicMessage.getAllFields().forEach(((fd, o) -> fillResponse(fd, o, intermediateResult)));
                 result.put(fieldDescriptor.getName(), intermediateResult);
             } else {
                 if (object instanceof Descriptors.EnumValueDescriptor enm) {

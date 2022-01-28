@@ -13,7 +13,7 @@ import graphql.validation.rules.OnValidationErrorStrategy;
 import graphql.validation.rules.ValidationRules;
 import graphql.validation.schemawiring.ValidationSchemaWiring;
 import io.vertx.ext.web.handler.graphql.schema.VertxDataFetcher;
-import ru.craftysoft.platform.gateway.Resolver;
+import ru.craftysoft.platform.gateway.resolver.Resolver;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
@@ -79,7 +79,7 @@ public class GraphQlConfiguration {
     private TypeRuntimeWiring.Builder resolveBuilder(List<String> mutations, Resolver resolver, TypeRuntimeWiring.Builder builder) {
         var dataFetcherMap = mutations.stream()
                 .map(name -> {
-                    var dataFetcher = VertxDataFetcher.create(resolver::handle);
+                    var dataFetcher = VertxDataFetcher.create(resolver::resolve);
                     return Map.entry(name, (DataFetcher) dataFetcher);
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

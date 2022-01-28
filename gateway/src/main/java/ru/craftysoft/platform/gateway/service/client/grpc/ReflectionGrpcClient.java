@@ -3,10 +3,11 @@ package ru.craftysoft.platform.gateway.service.client.grpc;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
 import com.google.protobuf.DescriptorProtos.FileDescriptorSet;
-import com.google.protobuf.Descriptors;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.Channel;
-import io.grpc.reflection.v1alpha.*;
+import io.grpc.reflection.v1alpha.ServerReflectionGrpc;
+import io.grpc.reflection.v1alpha.ServerReflectionRequest;
+import io.grpc.reflection.v1alpha.ServerReflectionResponse;
 import io.grpc.reflection.v1alpha.ServerReflectionResponse.MessageResponseCase;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
@@ -16,23 +17,13 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class ServerReflectionClient {
-    private static final Logger logger = LoggerFactory.getLogger(ServerReflectionClient.class);
-    private static final ServerReflectionRequest LIST_SERVICES_REQUEST = ServerReflectionRequest.newBuilder()
-            .setListServices("")  // Not sure what this is for, appears to be ignored.
-            .build();
+public class ReflectionGrpcClient {
+    private static final Logger logger = LoggerFactory.getLogger(ReflectionGrpcClient.class);
 
     private final Channel channel;
 
-    public ServerReflectionClient(Channel channel) {
+    public ReflectionGrpcClient(Channel channel) {
         this.channel = channel;
-    }
-
-    public CompletableFuture<List<String>> listServices() {
-        var rpcHandler = new ListServicesHandler();
-        var requestStream = ServerReflectionGrpc.newStub(channel)
-                .serverReflectionInfo(rpcHandler);
-        return rpcHandler.start(requestStream);
     }
 
     public CompletableFuture<FileDescriptorSet> lookupService(String serviceName) {
@@ -40,51 +31,6 @@ public class ServerReflectionClient {
         var requestStream = ServerReflectionGrpc.newStub(channel)
                 .serverReflectionInfo(rpcHandler);
         return rpcHandler.start(requestStream);
-    }
-
-    private static class ListServicesHandler implements StreamObserver<ServerReflectionResponse> {
-        private final CompletableFuture<List<String>> resultFuture;
-        private StreamObserver<ServerReflectionRequest> requestStream;
-
-        private ListServicesHandler() {
-            resultFuture = new CompletableFuture<>();
-        }
-
-        CompletableFuture<List<String>> start(StreamObserver<ServerReflectionRequest> requestStream) {
-            this.requestStream = requestStream;
-            requestStream.onNext(LIST_SERVICES_REQUEST);
-            return resultFuture;
-        }
-
-        @Override
-        public void onNext(ServerReflectionResponse serverReflectionResponse) {
-            MessageResponseCase responseCase = serverReflectionResponse.getMessageResponseCase();
-            switch (responseCase) {
-                case LIST_SERVICES_RESPONSE -> handleListServiceResponse(serverReflectionResponse.getListServicesResponse());
-                default -> logger.warn("Got unknown reflection response type: " + responseCase);
-            }
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            resultFuture.completeExceptionally(t);
-        }
-
-        @Override
-        public void onCompleted() {
-            if (!resultFuture.isDone()) {
-                logger.error("Unexpected completion of server reflection rpc while listing services");
-                resultFuture.completeExceptionally(new RuntimeException("Unexpected end of rpc"));
-            }
-        }
-
-        private void handleListServiceResponse(ListServiceResponse response) {
-            var result = response.getServiceList().stream()
-                    .map(ServiceResponse::getName)
-                    .toList();
-            resultFuture.complete(result);
-            requestStream.onCompleted();
-        }
     }
 
     private static class LookupServiceHandler implements StreamObserver<ServerReflectionResponse> {

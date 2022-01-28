@@ -2,8 +2,9 @@ package ru.craftysoft.platform.gateway.configuration;
 
 import io.grpc.Channel;
 import io.grpc.ManagedChannelBuilder;
+import ru.craftysoft.platform.gateway.configuration.property.GrpcClientConfigurationMap;
 import ru.craftysoft.platform.gateway.service.client.grpc.DynamicGrpcClient;
-import ru.craftysoft.platform.gateway.service.client.grpc.ServerReflectionClient;
+import ru.craftysoft.platform.gateway.service.client.grpc.ReflectionGrpcClient;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
@@ -31,9 +32,9 @@ public class GrpcClientConfiguration {
     }
 
     @ApplicationScoped
-    public Map<String, ServerReflectionClient> reflectionClients(@Named("channels") Map<String, Channel> channels) {
+    public Map<String, ReflectionGrpcClient> reflectionClients(@Named("channels") Map<String, Channel> channels) {
         return channels.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> new ServerReflectionClient(entry.getValue())));
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> new ReflectionGrpcClient(entry.getValue())));
     }
 
 }

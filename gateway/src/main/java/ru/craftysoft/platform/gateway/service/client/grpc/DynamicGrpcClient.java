@@ -2,6 +2,7 @@ package ru.craftysoft.platform.gateway.service.client.grpc;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.Message;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.MethodDescriptor;
@@ -19,14 +20,14 @@ public class DynamicGrpcClient {
         this.channel = channel;
     }
 
-    public CompletableFuture<DynamicMessage> callUnary(DynamicMessage request,
-                                                       CallOptions callOptions,
-                                                       String serviceName,
-                                                       String methodName,
-                                                       Descriptors.Descriptor inputType,
-                                                       Descriptors.Descriptor outputType) {
+    public CompletableFuture<Message> callUnary(DynamicMessage request,
+                                                CallOptions callOptions,
+                                                String serviceName,
+                                                String methodName,
+                                                Descriptors.Descriptor inputType,
+                                                Descriptors.Descriptor outputType) {
         var call = channel.newCall(createGrpcMethodDescriptor(serviceName, methodName, inputType, outputType), callOptions);
-        var result = new CompletableFuture<DynamicMessage>();
+        var result = new CompletableFuture<Message>();
         ClientCalls.asyncUnaryCall(
                 call,
                 request,
