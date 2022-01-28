@@ -5,6 +5,7 @@ schema {
 
 type Query {
     filter(request: FilterRequest!) : FilterResponse!
+    getById(request: GetByIdRequest!): GetByIdResponse!
 }
 
 type Mutation {
@@ -43,6 +44,19 @@ input UpdateRequestData {
 type UpdateResponse {
     id: Long!
     name: String!
+}
+
+input GetByIdRequest {
+    id: Long!
+    type: Type
+}
+
+type GetByIdResponse {
+    type: Type
+}
+
+enum Type {
+    SIMPLE, NE_SIMPLE
 }
 
 scalar Long

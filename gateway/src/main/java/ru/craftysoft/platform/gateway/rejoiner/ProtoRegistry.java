@@ -139,12 +139,11 @@ final class ProtoRegistry {
             return new ProtoRegistry(mapping, nodeInterface);
         }
 
-        private static BiMap<String, GraphQLType> getMap(
-                List<FileDescriptor> fileDescriptors,
-                List<Descriptor> descriptors,
-                List<EnumDescriptor> enumDescriptors,
-                GraphQLInterfaceType nodeInterface,
-                SchemaOptions schemaOptions) {
+        private static BiMap<String, GraphQLType> getMap(List<FileDescriptor> fileDescriptors,
+                                                         List<Descriptor> descriptors,
+                                                         List<EnumDescriptor> enumDescriptors,
+                                                         GraphQLInterfaceType nodeInterface,
+                                                         SchemaOptions schemaOptions) {
             HashBiMap<String, GraphQLType> mapping =
                     HashBiMap.create(getEnumMap(enumDescriptors, schemaOptions));
             LinkedList<Descriptor> loop = new LinkedList<>(descriptors);

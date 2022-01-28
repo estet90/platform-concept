@@ -14,6 +14,21 @@ public class GrpcService extends GrpcServiceGrpc.GrpcServiceImplBase {
                         .setId(1L)
                         .setName("test")
                         .build())
+                .addData(FilterResponseData.newBuilder()
+                        .setId(2L)
+                        .setName("test2")
+                        .build())
+                .build();
+        System.out.println("response nahuy: " + response);
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void getById(GetByIdRequest request, StreamObserver<GetByIdResponse> responseObserver) {
+        System.out.println("request bliat: " + request);
+        var response = GetByIdResponse.newBuilder()
+                .setType(request.getType())
                 .build();
         System.out.println("response nahuy: " + response);
         responseObserver.onNext(response);

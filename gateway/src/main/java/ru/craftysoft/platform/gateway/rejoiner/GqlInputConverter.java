@@ -19,11 +19,12 @@ import com.google.common.base.Converter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors.*;
 import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;
 import graphql.schema.*;
-import ru.craftysoft.proto.NullableString;
+import ru.craftysoft.proto.*;
 
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -57,51 +58,26 @@ public final class GqlInputConverter {
         if (input == null) {
             return builder.build();
         }
-        Map<String, Object> remainingInput = new HashMap<>(input);
-        for (FieldDescriptor field : descriptor.getFields()) {
-            String fieldName = getFieldName(field);
-
+        var remainingInput = new HashMap<>(input);
+        for (var field : descriptor.getFields()) {
+            var fieldName = field.getName();
             if (!remainingInput.containsKey(fieldName)) {
                 continue;
             }
-
             if (field.isRepeated()) {
                 var values = (List<Object>) remainingInput.remove(fieldName);
                 for (var value : values) {
-                    builder.addRepeatedField(field, getValueForField(field, value, builder));
+                    var valueForField = getValueForField(field, value, builder);
+                    builder.addRepeatedField(field, valueForField);
                 }
             } else {
-                builder.setField(field, getValueForField(field, remainingInput.remove(fieldName), builder));
+                var valueForField = getValueForField(field, remainingInput.remove(fieldName), builder);
+                builder.setField(field, valueForField);
             }
         }
-
         if (!remainingInput.isEmpty()) {
             throw new AssertionError("All fields in input should have been consumed. Remaining: " + remainingInput);
         }
-
-        return builder.build();
-    }
-
-    GraphQLType getInputType(Descriptor descriptor, SchemaOptions schemaOptions) {
-        var builder = GraphQLInputObjectType.newInputObject().name(getReferenceName(descriptor));
-        if (descriptor.getFields().isEmpty()) {
-            builder.field(STATIC_FIELD);
-        }
-        for (var field : descriptor.getFields()) {
-            GraphQLType fieldType = getFieldType(field, schemaOptions);
-            GraphQLInputObjectField.Builder inputBuilder =
-                    GraphQLInputObjectField.newInputObjectField().name(getFieldName(field));
-            if (field.isRepeated()) {
-                inputBuilder.type(new GraphQLList(fieldType));
-            } else {
-                inputBuilder.type((GraphQLInputType) fieldType);
-            }
-
-            inputBuilder.description(schemaOptions.commentsMap().get(field.getFullName()));
-
-            builder.field(inputBuilder.build());
-        }
-        builder.description(schemaOptions.commentsMap().get(descriptor.getFullName()));
         return builder.build();
     }
 
@@ -124,6 +100,54 @@ public final class GqlInputConverter {
                                 .map(string -> NullableString.newBuilder().setValue(string).build())
                                 .orElseGet(() -> NullableString.newBuilder().setNullValue(NULL_VALUE).build());
                     }
+                    case "ru.craftysoft.proto.NullableDouble" -> {
+                        return ofNullable(value)
+                                .map(Double.class::cast)
+                                .map(string -> NullableDouble.newBuilder().setValue(string).build())
+                                .orElseGet(() -> NullableDouble.newBuilder().setNullValue(NULL_VALUE).build());
+                    }
+                    case "ru.craftysoft.proto.NullableFloat" -> {
+                        return ofNullable(value)
+                                .map(Float.class::cast)
+                                .map(string -> NullableFloat.newBuilder().setValue(string).build())
+                                .orElseGet(() -> NullableFloat.newBuilder().setNullValue(NULL_VALUE).build());
+                    }
+                    case "ru.craftysoft.proto.NullableInt64" -> {
+                        return ofNullable(value)
+                                .map(Long.class::cast)
+                                .map(string -> NullableInt64.newBuilder().setValue(string).build())
+                                .orElseGet(() -> NullableInt64.newBuilder().setNullValue(NULL_VALUE).build());
+                    }
+                    case "ru.craftysoft.proto.NullableUInt64" -> {
+                        return ofNullable(value)
+                                .map(Long.class::cast)
+                                .map(string -> NullableUInt64.newBuilder().setValue(string).build())
+                                .orElseGet(() -> NullableUInt64.newBuilder().setNullValue(NULL_VALUE).build());
+                    }
+                    case "ru.craftysoft.proto.NullableInt32" -> {
+                        return ofNullable(value)
+                                .map(Integer.class::cast)
+                                .map(string -> NullableInt32.newBuilder().setValue(string).build())
+                                .orElseGet(() -> NullableInt32.newBuilder().setNullValue(NULL_VALUE).build());
+                    }
+                    case "ru.craftysoft.proto.NullableUInt32" -> {
+                        return ofNullable(value)
+                                .map(Integer.class::cast)
+                                .map(string -> NullableUInt32.newBuilder().setValue(string).build())
+                                .orElseGet(() -> NullableUInt32.newBuilder().setNullValue(NULL_VALUE).build());
+                    }
+                    case "ru.craftysoft.proto.NullableBool" -> {
+                        return ofNullable(value)
+                                .map(Boolean.class::cast)
+                                .map(string -> NullableBool.newBuilder().setValue(string).build())
+                                .orElseGet(() -> NullableBool.newBuilder().setNullValue(NULL_VALUE).build());
+                    }
+                    case "ru.craftysoft.proto.NullableBytes" -> {
+                        return ofNullable(value)
+                                .map(byte[].class::cast)
+                                .map(bytes -> NullableBytes.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
+                                .orElseGet(() -> NullableBytes.newBuilder().setNullValue(NULL_VALUE).build());
+                    }
                 }
                 return createProtoBuf(fieldTypeDescriptor, builder.newBuilderForField(field), (Map<String, Object>) value);
             }
@@ -141,6 +165,28 @@ public final class GqlInputConverter {
                 return value;
             }
         }
+    }
+
+    GraphQLType getInputType(Descriptor descriptor, SchemaOptions schemaOptions) {
+        var builder = GraphQLInputObjectType.newInputObject().name(getReferenceName(descriptor));
+        if (descriptor.getFields().isEmpty()) {
+            builder.field(STATIC_FIELD);
+        }
+        for (var field : descriptor.getFields()) {
+            GraphQLType fieldType = getFieldType(field, schemaOptions);
+            GraphQLInputObjectField.Builder inputBuilder = GraphQLInputObjectField.newInputObjectField().name(getFieldName(field));
+            if (field.isRepeated()) {
+                inputBuilder.type(new GraphQLList(fieldType));
+            } else {
+                inputBuilder.type((GraphQLInputType) fieldType);
+            }
+
+            inputBuilder.description(schemaOptions.commentsMap().get(field.getFullName()));
+
+            builder.field(inputBuilder.build());
+        }
+        builder.description(schemaOptions.commentsMap().get(descriptor.getFullName()));
+        return builder.build();
     }
 
     static GraphQLArgument createArgument(Descriptor descriptor, String name) {
@@ -162,7 +208,7 @@ public final class GqlInputConverter {
      * Field names with under_scores are converted to camelCase.
      */
     private static String getFieldName(FieldDescriptor field) {
-        String fieldName = field.getName();
+        var fieldName = field.getName();
         return fieldName.contains("_") ? UNDERSCORE_TO_CAMEL.convert(fieldName) : fieldName;
     }
 
@@ -200,7 +246,6 @@ public final class GqlInputConverter {
      */
     public static class Builder {
         private final ArrayList<FileDescriptor> fileDescriptors = new ArrayList<>();
-        private final ArrayList<Descriptor> descriptors = new ArrayList<>();
         private final ArrayList<EnumDescriptor> enumDescriptors = new ArrayList<>();
 
         public Builder add(FileDescriptor fileDescriptor) {
@@ -211,7 +256,7 @@ public final class GqlInputConverter {
         public GqlInputConverter build() {
             HashBiMap<String, Descriptor> mapping = HashBiMap.create();
             HashBiMap<String, EnumDescriptor> enumMapping = HashBiMap.create(getEnumMap(enumDescriptors));
-            LinkedList<Descriptor> loop = new LinkedList<>(descriptors);
+            LinkedList<Descriptor> loop = new LinkedList<>();
 
             Set<FileDescriptor> fileDescriptorSet = ProtoRegistry.extractDependencies(fileDescriptors);
 

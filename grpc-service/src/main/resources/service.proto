@@ -9,6 +9,7 @@ import "wrapper.proto";
 service GrpcService {
   rpc filter(FilterRequest) returns (FilterResponse);
   rpc update(UpdateRequest) returns (UpdateResponse);
+  rpc getById(GetByIdRequest) returns (GetByIdResponse);
 }
 
 message FilterRequest {
@@ -38,4 +39,19 @@ message UpdateRequestData {
 message UpdateResponse {
   int64 id = 1;
   string name = 2;
+}
+
+message GetByIdRequest {
+  int64 id = 1;
+  Type type = 2;
+}
+
+message GetByIdResponse {
+  Type type = 1;
+}
+
+enum Type {
+  NOOP = 0;
+  SIMPLE = 1;
+  NE_SIMPLE = 2;
 }

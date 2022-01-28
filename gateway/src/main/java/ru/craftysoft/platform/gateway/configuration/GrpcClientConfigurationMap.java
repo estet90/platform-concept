@@ -9,6 +9,8 @@ public interface GrpcClientConfigurationMap {
     Map<String, ServerConfiguration> servers();
 
     interface ServerConfiguration {
+        String serviceName();
+
         String host();
 
         int port();
