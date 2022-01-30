@@ -1,4 +1,4 @@
-package ru.craftysoft.platform.gateway.builder;
+package ru.craftysoft.platform.gateway.builder.dynamic;
 
 import com.google.common.base.CharMatcher;
 import com.google.protobuf.ByteString;
@@ -27,14 +27,12 @@ public final class DynamicMessageBuilder {
             return builder.build();
         }
         var fileDescriptorSet = extractDependencies(descriptor.getFile());
-
         var loop = new LinkedList<Descriptor>();
         var enumMapping = new HashMap<String, EnumDescriptor>();
         for (var fileDescriptor : fileDescriptorSet) {
             loop.addAll(fileDescriptor.getMessageTypes());
             enumMapping.putAll(getEnumMap(fileDescriptor.getEnumTypes()));
         }
-
         var descriptorMapping = new HashMap<String, Descriptor>();
         while (!loop.isEmpty()) {
             var innerDescriptor = loop.pop();
@@ -62,7 +60,7 @@ public final class DynamicMessageBuilder {
             }
         }
         if (!remainingInput.isEmpty()) {
-            throw new AssertionError("All fields in input should have been consumed. Remaining: " + remainingInput);
+            throw new AssertionError("Все поля должны быть переданы. Оставшиеся поля: " + remainingInput);
         }
         return builder.build();
     }

@@ -12,7 +12,7 @@ import javax.enterprise.context.ApplicationScoped;
 import java.util.Map;
 
 @ApplicationScoped
-public class Resolver {
+public class MainResolver {
 
     private final GrpcClientConfigurationMap configurationMap;
     private final GraphQlServersByMethodsMap graphQlServersByMethods;
@@ -20,11 +20,11 @@ public class Resolver {
     private final DynamicGrpcClientAdapter dynamicGrpcClientAdapter;
     private final ReflectionGrpcClientAdapter reflectionGrpcClientAdapter;
 
-    public Resolver(GrpcClientConfigurationMap configurationMap,
-                    GraphQlServersByMethodsMap graphQlServersByMethods,
-                    ResponseBuilder responseBuilder,
-                    DynamicGrpcClientAdapter dynamicGrpcClientAdapter,
-                    ReflectionGrpcClientAdapter reflectionGrpcClientAdapter) {
+    public MainResolver(GrpcClientConfigurationMap configurationMap,
+                        GraphQlServersByMethodsMap graphQlServersByMethods,
+                        ResponseBuilder responseBuilder,
+                        DynamicGrpcClientAdapter dynamicGrpcClientAdapter,
+                        ReflectionGrpcClientAdapter reflectionGrpcClientAdapter) {
         this.configurationMap = configurationMap;
         this.graphQlServersByMethods = graphQlServersByMethods;
         this.responseBuilder = responseBuilder;
@@ -35,10 +35,9 @@ public class Resolver {
     public Future<Map<String, Object>> resolve(DataFetchingEnvironment environment) {
         var serverName = graphQlServersByMethods.serversByMethods().get(environment.getFieldDefinition().getName());
         var serviceName = configurationMap.servers().get(serverName).serviceName();
-        var future = reflectionGrpcClientAdapter.lookupService(serviceName, serverName)
-                .thenCompose(descriptorSet -> dynamicGrpcClientAdapter.processRequest(environment, descriptorSet, serviceName, serverName)
-                        .thenApply(responseBuilder::build));
-        return Future.fromCompletionStage(future);
+        return reflectionGrpcClientAdapter.lookupService(serviceName, serverName)
+                .flatMap(descriptorSet -> dynamicGrpcClientAdapter.processRequest(environment, descriptorSet, serviceName, serverName)
+                        .map(responseBuilder::build));
     }
 
 }

@@ -13,14 +13,13 @@ import graphql.validation.rules.OnValidationErrorStrategy;
 import graphql.validation.rules.ValidationRules;
 import graphql.validation.schemawiring.ValidationSchemaWiring;
 import io.vertx.ext.web.handler.graphql.schema.VertxDataFetcher;
-import ru.craftysoft.platform.gateway.resolver.Resolver;
+import ru.craftysoft.platform.gateway.resolver.MainResolver;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -44,7 +43,7 @@ public class GraphQlConfiguration {
 
     @ApplicationScoped
     @Named("graphQl")
-    public GraphQL graphQl(Resolver resolver) {
+    public GraphQL graphQl(MainResolver mainResolver) {
         var typeRegistry = new SchemaParser().parse(graphql);
         var validationRules = ValidationRules.newValidationRules()
                 .onValidationErrorStrategy(OnValidationErrorStrategy.RETURN_NULL)
@@ -54,11 +53,11 @@ public class GraphQlConfiguration {
         var mutations = resolveMethods(typeRegistry, "Mutation");
         var runtimeWiring = newRuntimeWiring()
                 .directiveWiring(new ValidationSchemaWiring(validationRules))
-                .scalar(DateTime)
                 .scalar(GraphQLLong)
+                .scalar(DateTime)
                 .scalar(Date)
-                .type("Query", builder -> resolveBuilder(queries, resolver, builder))
-                .type("Mutation", builder -> resolveBuilder(mutations, resolver, builder))
+                .type("Query", builder -> resolveBuilder(queries, mainResolver, builder))
+                .type("Mutation", builder -> resolveBuilder(mutations, mainResolver, builder))
                 .build();
         var graphQLSchema = new SchemaGenerator().makeExecutableSchema(typeRegistry, runtimeWiring);
         return GraphQL.newGraphQL(graphQLSchema)
@@ -76,13 +75,9 @@ public class GraphQlConfiguration {
                 .toList();
     }
 
-    private TypeRuntimeWiring.Builder resolveBuilder(List<String> mutations, Resolver resolver, TypeRuntimeWiring.Builder builder) {
-        var dataFetcherMap = mutations.stream()
-                .map(name -> {
-                    var dataFetcher = VertxDataFetcher.create(resolver::resolve);
-                    return Map.entry(name, (DataFetcher) dataFetcher);
-                })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    private TypeRuntimeWiring.Builder resolveBuilder(List<String> methods, MainResolver mainResolver, TypeRuntimeWiring.Builder builder) {
+        var dataFetcherMap = methods.stream()
+                .collect(Collectors.toMap(name -> name, name -> (DataFetcher) VertxDataFetcher.create(mainResolver::resolve)));
         return builder.dataFetchers(dataFetcherMap);
     }
 }
