@@ -42,7 +42,7 @@ public class DynamicGrpcClientAdapter {
         var inputTypeDescriptor = descriptorResolver.resolve(method.getInputType(), fileDescriptor);
         var outputTypeDescriptor = descriptorResolver.resolve(method.getOutputType(), fileDescriptor);
         var methodDescriptor = methodDescriptorBuilder.build(serviceName, method.getName(), inputTypeDescriptor, outputTypeDescriptor);
-        var message = requestBuilder.build(inputTypeDescriptor, environment.getArgument("request"));
+        var message = requestBuilder.build(inputTypeDescriptor, environment.getArgument("request"), environment.getSelectionSet());
         var dynamicGrpcClient = dynamicGrpcClients.get(serverName);
         return dynamicGrpcClient.callUnary(message, methodDescriptor);
     }

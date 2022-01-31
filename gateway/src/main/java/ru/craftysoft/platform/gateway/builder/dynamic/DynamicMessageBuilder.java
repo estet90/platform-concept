@@ -7,6 +7,7 @@ import com.google.protobuf.Descriptors.EnumDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.GenericDescriptor;
 import com.google.type.Date;
+import graphql.schema.DataFetchingFieldSelectionSet;
 import ru.craftysoft.proto.*;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -21,12 +22,12 @@ import static java.util.Optional.ofNullable;
 @ApplicationScoped
 public class DynamicMessageBuilder {
 
-    public DynamicMessage build(Descriptor descriptor, Map<String, Object> input) {
+    public DynamicMessage build(Descriptor descriptor, Map<String, Object> input, DataFetchingFieldSelectionSet selectionSet) {
         var builder = DynamicMessage.newBuilder(descriptor);
-        return (DynamicMessage) build(descriptor, input, builder);
+        return (DynamicMessage) build(descriptor, input, selectionSet, builder);
     }
 
-    private Message build(Descriptor descriptor, Map<String, Object> input, Message.Builder builder) {
+    private Message build(Descriptor descriptor, Map<String, Object> input, DataFetchingFieldSelectionSet selectionSet, Message.Builder builder) {
         if (input == null) {
             return builder.build();
         }
@@ -49,30 +50,51 @@ public class DynamicMessageBuilder {
         var remainingInput = new HashMap<>(input);
         for (var field : descriptor.getFields()) {
             var fieldName = field.getName();
+            if (Descriptors.FieldDescriptor.Type.MESSAGE.equals(field.getType()) && "google.protobuf.FieldMask".equals(field.getMessageType().getFullName())) {
+                var selectedFields = new HashSet<String>();
+                fillSelectedFields(selectedFields, "", selectionSet);
+                var fieldMask = FieldMask.newBuilder()
+                        .addAllPaths(selectedFields)
+                        .build();
+                builder.setField(field, fieldMask);
+                continue;
+            }
             if (!remainingInput.containsKey(fieldName)) {
                 continue;
             }
             if (field.isRepeated()) {
                 var values = (List<Object>) remainingInput.remove(fieldName);
                 for (var value : values) {
-                    var valueForField = getValueForField(descriptorMapping, enumMapping, field, value, builder);
+                    var valueForField = getValueForField(descriptorMapping, enumMapping, field, value, selectionSet, builder);
                     builder.addRepeatedField(field, valueForField);
                 }
             } else {
-                var valueForField = getValueForField(descriptorMapping, enumMapping, field, remainingInput.remove(fieldName), builder);
+                var valueForField = getValueForField(descriptorMapping, enumMapping, field, remainingInput.remove(fieldName), selectionSet, builder);
                 builder.setField(field, valueForField);
             }
         }
-        if (!remainingInput.isEmpty()) {
-            throw new AssertionError("Все поля должны быть переданы. Оставшиеся поля: " + remainingInput);
-        }
         return builder.build();
+    }
+
+    private void fillSelectedFields(Set<String> selectedFields, String prefix, DataFetchingFieldSelectionSet selectionSet) {
+        selectionSet.getImmediateFields().forEach(selectedField -> {
+            var immediateSelectionSet = selectedField.getSelectionSet();
+            var fieldName = prefix.isEmpty()
+                    ? selectedField.getName()
+                    : prefix + "." + selectedField.getName();
+            if (immediateSelectionSet.getImmediateFields().isEmpty()) {
+                selectedFields.add(fieldName);
+            } else {
+                fillSelectedFields(selectedFields, fieldName, immediateSelectionSet);
+            }
+        });
     }
 
     private Object getValueForField(Map<String, Descriptor> descriptorMapping,
                                     Map<String, EnumDescriptor> enumMapping,
                                     FieldDescriptor field,
                                     Object value,
+                                    DataFetchingFieldSelectionSet selectionSet,
                                     Message.Builder builder) {
         switch (field.getType()) {
             case MESSAGE -> {
@@ -151,17 +173,11 @@ public class DynamicMessageBuilder {
                                 .orElseGet(() -> NullableBytes.newBuilder().setNullValue(NULL_VALUE).build());
                     }
                 }
-                return build(fieldTypeDescriptor, (Map<String, Object>) value, builder.newBuilderForField(field));
+                return build(fieldTypeDescriptor, (Map<String, Object>) value, selectionSet, builder.newBuilderForField(field));
             }
             case ENUM -> {
                 var enumDescriptor = enumMapping.get(getReferenceName(field.getEnumType()));
                 return enumDescriptor.findValueByName(value.toString());
-            }
-            case FLOAT -> {
-                if (value instanceof Double) {
-                    return ((Double) value).floatValue();
-                }
-                return value;
             }
             default -> {
                 return value;

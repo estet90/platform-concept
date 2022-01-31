@@ -5,6 +5,7 @@ package ru.craftysoft.platform.grpcservice.proto;
 option java_multiple_files = true;
 
 import "google/type/date.proto";
+import "google/protobuf/field_mask.proto";
 
 import "wrapper.proto";
 
@@ -21,6 +22,7 @@ message FilterRequest {
   string name = 2;
   google.type.Date date = 3;
   Wrapper wrapper = 4;
+  google.protobuf.FieldMask fieldMask = 5;
 }
 
 message FilterResponse {
