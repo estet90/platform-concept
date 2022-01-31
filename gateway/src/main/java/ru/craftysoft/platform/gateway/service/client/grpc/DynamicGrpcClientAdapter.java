@@ -1,6 +1,5 @@
 package ru.craftysoft.platform.gateway.service.client.grpc;
 
-import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
 import graphql.schema.DataFetchingEnvironment;
 import io.grpc.reflection.v1alpha.ServerReflectionResponse;
@@ -42,9 +41,8 @@ public class DynamicGrpcClientAdapter {
         var method = methodDescriptorResolver.resolve(environment, fileDescriptor, serviceName);
         var inputTypeDescriptor = descriptorResolver.resolve(method.getInputType(), fileDescriptor);
         var outputTypeDescriptor = descriptorResolver.resolve(method.getOutputType(), fileDescriptor);
-        var builder = DynamicMessage.newBuilder(inputTypeDescriptor);
-        var message = (DynamicMessage) requestBuilder.build(inputTypeDescriptor, builder, environment.getArgument("request"));
         var methodDescriptor = methodDescriptorBuilder.build(serviceName, method.getName(), inputTypeDescriptor, outputTypeDescriptor);
+        var message = requestBuilder.build(inputTypeDescriptor, environment.getArgument("request"));
         var dynamicGrpcClient = dynamicGrpcClients.get(serverName);
         return dynamicGrpcClient.callUnary(message, methodDescriptor);
     }

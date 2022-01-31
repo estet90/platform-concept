@@ -22,6 +22,7 @@ subprojects {
 
     ext {
         protobufVersion = "3.19.3"
+        quarkusVersion = "2.7.0.Final"
     }
 
     dependencies {
@@ -36,7 +37,7 @@ subprojects {
     }
 
     dependencies {
-        implementation platform("io.quarkus:quarkus-bom:2.7.0.Final")
+        implementation platform("io.quarkus:quarkus-bom:$quarkusVersion")
     }
 
     test {

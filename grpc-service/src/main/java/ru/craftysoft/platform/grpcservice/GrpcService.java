@@ -1,7 +1,10 @@
 package ru.craftysoft.platform.grpcservice;
 
+import com.google.protobuf.NullValue;
+import com.google.type.Date;
 import io.grpc.stub.StreamObserver;
 import ru.craftysoft.platform.grpcservice.proto.*;
+import ru.craftysoft.proto.NullableString;
 
 @io.quarkus.grpc.GrpcService
 public class GrpcService extends GrpcServiceGrpc.GrpcServiceImplBase {
@@ -12,10 +15,14 @@ public class GrpcService extends GrpcServiceGrpc.GrpcServiceImplBase {
                 .addData(FilterResponseData.newBuilder()
                         .setId(1L)
                         .setName("test")
+                        .setDescription(NullableString.newBuilder().setValue("description"))
+                        .setFullName(NullableString.newBuilder().setNullValue(NullValue.NULL_VALUE).build())
+                        .setDate(request.getDate())
                         .build())
                 .addData(FilterResponseData.newBuilder()
                         .setId(2L)
                         .setName("test2")
+                        .setDate(Date.newBuilder().setYear(2022).setMonth(12).setDay(31))
                         .build())
                 .build();
         responseObserver.onNext(response);

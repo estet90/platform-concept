@@ -1,17 +1,16 @@
 package ru.craftysoft.platform.gateway.builder.dynamic;
 
 import com.google.common.base.CharMatcher;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Descriptors;
+import com.google.protobuf.*;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.EnumDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.GenericDescriptor;
-import com.google.protobuf.Message;
-import com.google.protobuf.Timestamp;
+import com.google.type.Date;
 import ru.craftysoft.proto.*;
 
 import javax.enterprise.context.ApplicationScoped;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -20,9 +19,14 @@ import static com.google.protobuf.NullValue.NULL_VALUE;
 import static java.util.Optional.ofNullable;
 
 @ApplicationScoped
-public final class DynamicMessageBuilder {
+public class DynamicMessageBuilder {
 
-    public Message build(Descriptor descriptor, Message.Builder builder, Map<String, Object> input) {
+    public DynamicMessage build(Descriptor descriptor, Map<String, Object> input) {
+        var builder = DynamicMessage.newBuilder(descriptor);
+        return (DynamicMessage) build(descriptor, input, builder);
+    }
+
+    private Message build(Descriptor descriptor, Map<String, Object> input, Message.Builder builder) {
         if (input == null) {
             return builder.build();
         }
@@ -80,7 +84,17 @@ public final class DynamicMessageBuilder {
                                 .map(dateTime -> Timestamp.newBuilder()
                                         .setSeconds(dateTime.toEpochSecond())
                                         .setNanos(dateTime.getNano()).build())
-                                .orElseGet(Timestamp.newBuilder()::getDefaultInstanceForType);
+                                .orElseGet(Timestamp::getDefaultInstance);
+                    }
+                    case "google.type.Date" -> {
+                        return ofNullable(value)
+                                .map(LocalDate.class::cast)
+                                .map(localDate -> Date.newBuilder()
+                                        .setYear(localDate.getYear())
+                                        .setMonth(localDate.getMonthValue())
+                                        .setDay(localDate.getDayOfMonth())
+                                        .build()
+                                ).orElseGet(Date::getDefaultInstance);
                     }
                     case "ru.craftysoft.proto.NullableString" -> {
                         return ofNullable(value)
@@ -137,7 +151,7 @@ public final class DynamicMessageBuilder {
                                 .orElseGet(() -> NullableBytes.newBuilder().setNullValue(NULL_VALUE).build());
                     }
                 }
-                return build(fieldTypeDescriptor, builder.newBuilderForField(field), (Map<String, Object>) value);
+                return build(fieldTypeDescriptor, (Map<String, Object>) value, builder.newBuilderForField(field));
             }
             case ENUM -> {
                 var enumDescriptor = enumMapping.get(getReferenceName(field.getEnumType()));

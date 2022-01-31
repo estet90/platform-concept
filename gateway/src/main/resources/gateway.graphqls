@@ -15,6 +15,7 @@ type Mutation {
 input FilterRequest {
     id: Long!
     name: String!
+    date: Date
     wrapper: Wrapper!
 }
 
@@ -30,6 +31,9 @@ type FilterResponse {
 type FilterResponseData {
     id: Long!
     name: String!
+    fullName: String
+    description: String
+    date: Date
 }
 
 input UpdateRequest {
@@ -60,4 +64,5 @@ enum Type {
 }
 
 scalar Long
+scalar Date
 scalar DateTime

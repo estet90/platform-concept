@@ -4,7 +4,11 @@ package ru.craftysoft.platform.grpcservice.proto;
 
 option java_multiple_files = true;
 
+import "google/type/date.proto";
+
 import "wrapper.proto";
+
+import "ru/craftysoft/proto/wrappers.proto";
 
 service GrpcService {
   rpc filter(FilterRequest) returns (FilterResponse);
@@ -15,7 +19,8 @@ service GrpcService {
 message FilterRequest {
   int64 id = 1;
   string name = 2;
-  Wrapper wrapper = 3;
+  google.type.Date date = 3;
+  Wrapper wrapper = 4;
 }
 
 message FilterResponse {
@@ -25,6 +30,9 @@ message FilterResponse {
 message FilterResponseData {
   int64 id = 1;
   string name = 2;
+  ru.craftysoft.proto.NullableString fullName = 3;
+  ru.craftysoft.proto.NullableString description = 4;
+  google.type.Date date = 5;
 }
 
 message UpdateRequest {
