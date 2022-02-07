@@ -3,7 +3,6 @@ buildscript {
         gradlePluginPortal()
     }
     dependencies {
-        classpath "org.kordamp.gradle:jandex-gradle-plugin:0.11.0"
         classpath "io.quarkus:gradle-application-plugin:2.7.0.Final"
     }
 }

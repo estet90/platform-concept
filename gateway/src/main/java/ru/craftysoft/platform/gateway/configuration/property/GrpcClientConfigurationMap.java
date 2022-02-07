@@ -14,5 +14,9 @@ public interface GrpcClientConfigurationMap {
         String host();
 
         int port();
+
+        long reflectionClientDeadline();
+
+        long dynamicClientDeadline();
     }
 }
