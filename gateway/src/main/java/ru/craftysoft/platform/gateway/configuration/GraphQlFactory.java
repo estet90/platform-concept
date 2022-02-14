@@ -50,8 +50,8 @@ public class GraphQlFactory {
                 .build();
     }
 
-    private static List<String> resolveMethods(TypeDefinitionRegistry typeRegistry, String Query) {
-        return typeRegistry.getType(Query)
+    private static List<String> resolveMethods(TypeDefinitionRegistry typeRegistry, String type) {
+        return typeRegistry.getType(type)
                 .map(ObjectTypeDefinition.class::cast)
                 .map(ObjectTypeDefinition::getChildren)
                 .stream()

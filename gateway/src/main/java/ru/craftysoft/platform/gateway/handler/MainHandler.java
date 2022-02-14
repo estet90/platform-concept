@@ -53,7 +53,6 @@ public class MainHandler {
                 .remove();
         router.post(GRAPHQL_ROUTE_PATH)
                 .handler(newGraphQlHandler);
-        var response = routingContext.response();
-        response.end("OK");
+        routingContext.response().end("OK");
     }
 }

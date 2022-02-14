@@ -1,8 +1,8 @@
 package ru.craftysoft.platform.gateway.service.client.grpc;
 
+import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import graphql.schema.DataFetchingEnvironment;
-import io.grpc.reflection.v1alpha.ServerReflectionResponse;
 import io.vertx.core.Future;
 import ru.craftysoft.platform.gateway.builder.dynamic.*;
 
@@ -34,10 +34,9 @@ public class DynamicGrpcClientAdapter {
     }
 
     public Future<Message> processRequest(DataFetchingEnvironment environment,
-                                          ServerReflectionResponse serverReflectionResponse,
+                                          Descriptors.FileDescriptor fileDescriptor,
                                           String serviceName,
                                           String serverName) {
-        var fileDescriptor = fileDescriptorResolver.resolve(serverReflectionResponse);
         var method = methodDescriptorResolver.resolve(environment, fileDescriptor, serviceName);
         var inputTypeDescriptor = descriptorResolver.resolve(method.getInputType(), fileDescriptor);
         var outputTypeDescriptor = descriptorResolver.resolve(method.getOutputType(), fileDescriptor);

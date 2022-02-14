@@ -14,8 +14,8 @@ public class GraphQlConfiguration {
     @ApplicationScoped
     @Named("graphQl")
     public GraphQL graphQl(MainResolver mainResolver) {
-        var graphql = parse();
-        return GraphQlFactory.graphQl(mainResolver::resolve, graphql);
+        var contract = parse();
+        return GraphQlFactory.graphQl(mainResolver::resolve, contract);
     }
 
     private String parse() {

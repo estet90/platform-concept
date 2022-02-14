@@ -6,7 +6,6 @@ import com.google.protobuf.ExtensionRegistryLite;
 import io.grpc.MethodDescriptor;
 
 import javax.enterprise.context.ApplicationScoped;
-
 import java.io.IOException;
 import java.io.InputStream;
 

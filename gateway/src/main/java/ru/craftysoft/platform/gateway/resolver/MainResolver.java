@@ -35,8 +35,8 @@ public class MainResolver {
     public Future<Map<String, Object>> resolve(DataFetchingEnvironment environment) {
         var serverName = graphQlServersByMethods.serversByMethods().get(environment.getFieldDefinition().getName());
         var serviceName = configurationMap.servers().get(serverName).serviceName();
-        return reflectionGrpcClientAdapter.lookupService(serviceName, serverName)
-                .flatMap(descriptorSet -> dynamicGrpcClientAdapter.processRequest(environment, descriptorSet, serviceName, serverName)
+        return reflectionGrpcClientAdapter.lookupService(serverName, serviceName)
+                .flatMap(fileDescriptor -> dynamicGrpcClientAdapter.processRequest(environment, fileDescriptor, serviceName, serverName)
                         .map(responseBuilder::build));
     }
 

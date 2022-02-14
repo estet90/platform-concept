@@ -2,6 +2,7 @@ package ru.craftysoft.platform.gateway.service.client.grpc;
 
 import io.grpc.CallOptions;
 import io.grpc.Channel;
+import io.grpc.ClientInterceptors;
 import io.grpc.Deadline;
 import io.grpc.reflection.v1alpha.ServerReflectionRequest;
 import io.grpc.reflection.v1alpha.ServerReflectionResponse;
@@ -9,6 +10,7 @@ import io.grpc.stub.ClientCalls;
 import io.grpc.stub.StreamObserver;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import ru.craftysoft.platform.gateway.interceptor.GrpcClientInterceptor;
 
 import java.util.concurrent.TimeUnit;
 
@@ -24,10 +26,11 @@ public class ReflectionGrpcClient {
     }
 
     public Future<ServerReflectionResponse> lookupService(ServerReflectionRequest request) {
-        var call = channel.newCall(
-                getServerReflectionInfoMethod(),
-                CallOptions.DEFAULT.withDeadline(Deadline.after(deadline, TimeUnit.MILLISECONDS))
-        );
+        var call = ClientInterceptors.intercept(channel, new GrpcClientInterceptor(this.getClass()))
+                .newCall(
+                        getServerReflectionInfoMethod(),
+                        CallOptions.DEFAULT.withDeadline(Deadline.after(deadline, TimeUnit.MILLISECONDS))
+                );
         var promise = Promise.<ServerReflectionResponse>promise();
         ClientCalls.asyncUnaryCall(
                 call,
