@@ -4,7 +4,6 @@ import graphql.GraphQL;
 import ru.craftysoft.platform.gateway.resolver.MainResolver;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Named;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
@@ -12,7 +11,6 @@ import java.util.Objects;
 public class GraphQlConfiguration {
 
     @ApplicationScoped
-    @Named("graphQl")
     public GraphQL graphQl(MainResolver mainResolver) {
         var contract = parse();
         return GraphQlFactory.graphQl(mainResolver::resolve, contract);

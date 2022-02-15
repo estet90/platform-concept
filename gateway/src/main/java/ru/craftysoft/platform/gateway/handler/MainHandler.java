@@ -6,34 +6,26 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 import io.vertx.ext.web.handler.graphql.GraphQLHandlerOptions;
+import lombok.RequiredArgsConstructor;
 import ru.craftysoft.platform.gateway.configuration.GraphQlFactory;
 import ru.craftysoft.platform.gateway.resolver.MainResolver;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Named;
 import java.nio.charset.StandardCharsets;
 
 import static java.util.Optional.ofNullable;
 import static ru.craftysoft.platform.gateway.configuration.RouterConfiguration.GRAPHQL_ROUTE_PATH;
 
 @ApplicationScoped
+@RequiredArgsConstructor
 public class MainHandler {
 
     private final GraphQL graphQl;
     private final Router router;
     private final MainResolver mainResolver;
-    private final GraphQLHandlerOptions graphQlHandlerOptions;
-
-    public MainHandler(@Named("graphQl") GraphQL graphQl,
-                       Router router,
-                       MainResolver mainResolver) {
-        this.graphQl = graphQl;
-        this.router = router;
-        this.mainResolver = mainResolver;
-        this.graphQlHandlerOptions = new GraphQLHandlerOptions()
-                .setRequestMultipartEnabled(true)
-                .setRequestBatchingEnabled(true);
-    }
+    private final GraphQLHandlerOptions graphQlHandlerOptions = new GraphQLHandlerOptions()
+            .setRequestMultipartEnabled(true)
+            .setRequestBatchingEnabled(true);
 
     public void graphqlHandle(RoutingContext routingContext) {
         GraphQLHandler.create(graphQl, graphQlHandlerOptions).handle(routingContext);

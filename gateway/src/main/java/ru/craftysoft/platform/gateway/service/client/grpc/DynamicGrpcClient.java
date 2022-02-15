@@ -7,18 +7,15 @@ import io.grpc.stub.ClientCalls;
 import io.grpc.stub.StreamObserver;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import lombok.RequiredArgsConstructor;
 import ru.craftysoft.platform.gateway.interceptor.GrpcClientInterceptor;
 
 import java.util.concurrent.TimeUnit;
 
+@RequiredArgsConstructor
 public class DynamicGrpcClient {
     private final Channel channel;
     private final long deadline;
-
-    public DynamicGrpcClient(Channel channel, long deadline) {
-        this.channel = channel;
-        this.deadline = deadline;
-    }
 
     public Future<Message> callUnary(DynamicMessage request, MethodDescriptor<DynamicMessage, DynamicMessage> methodDescriptor) {
         var call = ClientInterceptors.intercept(channel, new GrpcClientInterceptor(this.getClass()))

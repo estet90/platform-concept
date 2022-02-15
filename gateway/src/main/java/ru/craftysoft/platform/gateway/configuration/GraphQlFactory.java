@@ -15,6 +15,7 @@ import graphql.validation.rules.ValidationRules;
 import graphql.validation.schemawiring.ValidationSchemaWiring;
 import io.vertx.core.Future;
 import io.vertx.ext.web.handler.graphql.schema.VertxDataFetcher;
+import lombok.NoArgsConstructor;
 
 import java.util.Collection;
 import java.util.List;
@@ -23,11 +24,10 @@ import java.util.stream.Collectors;
 
 import static graphql.scalars.ExtendedScalars.*;
 import static graphql.schema.idl.RuntimeWiring.newRuntimeWiring;
+import static lombok.AccessLevel.PRIVATE;
 
+@NoArgsConstructor(access = PRIVATE)
 public class GraphQlFactory {
-
-    private GraphQlFactory() {
-    }
 
     public static <T> GraphQL graphQl(Function<DataFetchingEnvironment, Future<T>> dataFetcher, String graphql) {
         var typeRegistry = new SchemaParser().parse(graphql);

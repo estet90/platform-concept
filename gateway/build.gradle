@@ -10,4 +10,6 @@ dependencies {
             "io.vertx:vertx-web-graphql",
             "com.google.protobuf:protobuf-java-util",
     )
+    compileOnly("org.projectlombok:lombok:1.18.22")
+    annotationProcessor("org.projectlombok:lombok:1.18.22")
 }

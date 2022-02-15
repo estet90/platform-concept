@@ -5,6 +5,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.protobuf.Descriptors;
 import io.vertx.core.Future;
+import lombok.RequiredArgsConstructor;
 import ru.craftysoft.platform.gateway.builder.dynamic.FileDescriptorResolver;
 import ru.craftysoft.platform.gateway.builder.reflection.ServerReflectionRequestBuilder;
 
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @ApplicationScoped
+@RequiredArgsConstructor
 public class ReflectionGrpcClientAdapter {
 
     private final Map<String, ReflectionGrpcClient> reflectionClients;
@@ -23,14 +25,6 @@ public class ReflectionGrpcClientAdapter {
             .maximumSize(128)
             .expireAfterWrite(1, TimeUnit.MINUTES)
             .build(new ReflectionClientCacheLoader());
-
-    public ReflectionGrpcClientAdapter(Map<String, ReflectionGrpcClient> reflectionClients,
-                                       ServerReflectionRequestBuilder requestBuilder,
-                                       FileDescriptorResolver fileDescriptorResolver) {
-        this.reflectionClients = reflectionClients;
-        this.requestBuilder = requestBuilder;
-        this.fileDescriptorResolver = fileDescriptorResolver;
-    }
 
     public Future<Descriptors.FileDescriptor> lookupService(String serverName, String serviceName) {
         return fileDescriptors.getUnchecked(new ServiceKey(serverName, serviceName));

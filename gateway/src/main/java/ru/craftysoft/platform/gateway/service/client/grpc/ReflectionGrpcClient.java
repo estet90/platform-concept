@@ -10,20 +10,17 @@ import io.grpc.stub.ClientCalls;
 import io.grpc.stub.StreamObserver;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import lombok.RequiredArgsConstructor;
 import ru.craftysoft.platform.gateway.interceptor.GrpcClientInterceptor;
 
 import java.util.concurrent.TimeUnit;
 
 import static io.grpc.reflection.v1alpha.ServerReflectionGrpc.getServerReflectionInfoMethod;
 
+@RequiredArgsConstructor
 public class ReflectionGrpcClient {
     private final Channel channel;
     private final long deadline;
-
-    public ReflectionGrpcClient(Channel channel, long deadline) {
-        this.channel = channel;
-        this.deadline = deadline;
-    }
 
     public Future<ServerReflectionResponse> lookupService(ServerReflectionRequest request) {
         var call = ClientInterceptors.intercept(channel, new GrpcClientInterceptor(this.getClass()))

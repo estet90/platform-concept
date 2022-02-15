@@ -4,7 +4,10 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import graphql.schema.DataFetchingEnvironment;
 import io.vertx.core.Future;
-import ru.craftysoft.platform.gateway.builder.dynamic.*;
+import ru.craftysoft.platform.gateway.builder.dynamic.DescriptorResolver;
+import ru.craftysoft.platform.gateway.builder.dynamic.DynamicMessageBuilder;
+import ru.craftysoft.platform.gateway.builder.dynamic.DynamicMessageMethodDescriptorBuilder;
+import ru.craftysoft.platform.gateway.builder.dynamic.MethodDescriptorResolver;
 
 import javax.enterprise.context.ApplicationScoped;
 import java.util.Map;
@@ -15,20 +18,17 @@ public class DynamicGrpcClientAdapter {
     private final Map<String, DynamicGrpcClient> dynamicGrpcClients;
     private final DynamicMessageBuilder requestBuilder;
     private final DynamicMessageMethodDescriptorBuilder methodDescriptorBuilder;
-    private final FileDescriptorResolver fileDescriptorResolver;
     private final DescriptorResolver descriptorResolver;
     private final MethodDescriptorResolver methodDescriptorResolver;
 
     public DynamicGrpcClientAdapter(Map<String, DynamicGrpcClient> dynamicGrpcClients,
                                     DynamicMessageBuilder requestBuilder,
                                     DynamicMessageMethodDescriptorBuilder methodDescriptorBuilder,
-                                    FileDescriptorResolver fileDescriptorResolver,
                                     DescriptorResolver descriptorResolver,
                                     MethodDescriptorResolver methodDescriptorResolver) {
         this.dynamicGrpcClients = dynamicGrpcClients;
         this.requestBuilder = requestBuilder;
         this.methodDescriptorBuilder = methodDescriptorBuilder;
-        this.fileDescriptorResolver = fileDescriptorResolver;
         this.descriptorResolver = descriptorResolver;
         this.methodDescriptorResolver = methodDescriptorResolver;
     }

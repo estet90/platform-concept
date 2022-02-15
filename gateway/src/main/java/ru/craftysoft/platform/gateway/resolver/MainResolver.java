@@ -2,6 +2,7 @@ package ru.craftysoft.platform.gateway.resolver;
 
 import graphql.schema.DataFetchingEnvironment;
 import io.vertx.core.Future;
+import lombok.RequiredArgsConstructor;
 import ru.craftysoft.platform.gateway.builder.ResponseBuilder;
 import ru.craftysoft.platform.gateway.configuration.property.GraphQlServersByMethodsMap;
 import ru.craftysoft.platform.gateway.configuration.property.GrpcClientConfigurationMap;
@@ -12,6 +13,7 @@ import javax.enterprise.context.ApplicationScoped;
 import java.util.Map;
 
 @ApplicationScoped
+@RequiredArgsConstructor
 public class MainResolver {
 
     private final GrpcClientConfigurationMap configurationMap;
@@ -19,18 +21,6 @@ public class MainResolver {
     private final ResponseBuilder responseBuilder;
     private final DynamicGrpcClientAdapter dynamicGrpcClientAdapter;
     private final ReflectionGrpcClientAdapter reflectionGrpcClientAdapter;
-
-    public MainResolver(GrpcClientConfigurationMap configurationMap,
-                        GraphQlServersByMethodsMap graphQlServersByMethods,
-                        ResponseBuilder responseBuilder,
-                        DynamicGrpcClientAdapter dynamicGrpcClientAdapter,
-                        ReflectionGrpcClientAdapter reflectionGrpcClientAdapter) {
-        this.configurationMap = configurationMap;
-        this.graphQlServersByMethods = graphQlServersByMethods;
-        this.responseBuilder = responseBuilder;
-        this.dynamicGrpcClientAdapter = dynamicGrpcClientAdapter;
-        this.reflectionGrpcClientAdapter = reflectionGrpcClientAdapter;
-    }
 
     public Future<Map<String, Object>> resolve(DataFetchingEnvironment environment) {
         var serverName = graphQlServersByMethods.serversByMethods().get(environment.getFieldDefinition().getName());

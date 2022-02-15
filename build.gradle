@@ -3,7 +3,7 @@ buildscript {
         gradlePluginPortal()
     }
     dependencies {
-        classpath "io.quarkus:gradle-application-plugin:2.7.0.Final"
+        classpath "io.quarkus:gradle-application-plugin:2.7.1.Final"
     }
 }
 
@@ -21,7 +21,7 @@ subprojects {
 
     ext {
         protobufVersion = "3.19.3"
-        quarkusVersion = "2.7.0.Final"
+        quarkusVersion = "2.7.1.Final"
     }
 
     dependencies {
