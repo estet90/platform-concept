@@ -1,6 +1,7 @@
 package ru.craftysoft.platform.gateway.resolver;
 
 import graphql.schema.DataFetchingEnvironment;
+import io.smallrye.mutiny.vertx.UniHelper;
 import io.vertx.core.Future;
 import lombok.RequiredArgsConstructor;
 import ru.craftysoft.platform.gateway.builder.ResponseBuilder;
@@ -25,9 +26,10 @@ public class MainResolver {
     public Future<Map<String, Object>> resolve(DataFetchingEnvironment environment) {
         var serverName = graphQlServersByMethods.serversByMethods().get(environment.getFieldDefinition().getName());
         var serviceName = configurationMap.servers().get(serverName).serviceName();
-        return reflectionGrpcClientAdapter.lookupService(serverName, serviceName)
-                .flatMap(fileDescriptor -> dynamicGrpcClientAdapter.processRequest(environment, fileDescriptor, serviceName, serverName)
-                        .map(responseBuilder::build));
+        var uni = reflectionGrpcClientAdapter.serverReflectionInfo(serverName, serviceName)
+                .flatMap(fileDescriptor -> dynamicGrpcClientAdapter.processRequest(environment, fileDescriptor, serverName, serviceName))
+                .map(responseBuilder::build);
+        return UniHelper.toFuture(uni);
     }
 
 }

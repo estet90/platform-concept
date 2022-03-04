@@ -2,7 +2,6 @@ package ru.craftysoft.platform.gateway.builder;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;
 import com.google.type.Date;
 
@@ -19,7 +18,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class ResponseBuilder {
 
-    public Map<String, Object> build(Message dynamicMessage) {
+    public Map<String, Object> build(DynamicMessage dynamicMessage) {
         var result = new HashMap<String, Object>();
         dynamicMessage.getAllFields().forEach(((fieldDescriptor, o) -> fillResponse(fieldDescriptor, o, result)));
         return result;

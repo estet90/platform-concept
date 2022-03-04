@@ -1,6 +1,7 @@
 package ru.craftysoft.platform.gateway.handler;
 
 import graphql.GraphQL;
+import io.quarkus.cache.CacheInvalidateAll;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -32,6 +33,10 @@ public class MainHandler {
     }
 
     public void refreshHandle(RoutingContext routingContext) {
+        routingContext.vertx().executeBlocking(event -> {
+            invalidateCache();
+            event.complete();
+        });
         var contract = ofNullable(routingContext.getBody())
                 .map(Buffer::getBytes)
                 .map(bytes -> new String(bytes, StandardCharsets.UTF_8))
@@ -46,5 +51,9 @@ public class MainHandler {
         router.post(GRAPHQL_ROUTE_PATH)
                 .handler(newGraphQlHandler);
         routingContext.response().end("OK");
+    }
+
+    @CacheInvalidateAll(cacheName = "server-reflection-info")
+    void invalidateCache() {
     }
 }

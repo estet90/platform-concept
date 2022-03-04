@@ -12,6 +12,11 @@ grpc:
       reflection-client-deadline: 1000
       dynamic-client-deadline: 2000
 quarkus:
+  cache:
+    caffeine:
+      server-reflection-info:
+        expire-after-write: 60S
+        maximum-size: 100
   log:
     level: INFO
     category:

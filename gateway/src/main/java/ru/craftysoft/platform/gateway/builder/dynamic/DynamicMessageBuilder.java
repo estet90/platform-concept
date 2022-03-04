@@ -24,10 +24,14 @@ public class DynamicMessageBuilder {
 
     public DynamicMessage build(Descriptor descriptor, Map<String, Object> input, DataFetchingFieldSelectionSet selectionSet) {
         var builder = DynamicMessage.newBuilder(descriptor);
-        return (DynamicMessage) build(descriptor, input, selectionSet, builder);
+        return (DynamicMessage) build(descriptor, input, selectionSet, builder, true);
     }
 
-    private Message build(Descriptor descriptor, Map<String, Object> input, DataFetchingFieldSelectionSet selectionSet, Message.Builder builder) {
+    private Message build(Descriptor descriptor,
+                          Map<String, Object> input,
+                          DataFetchingFieldSelectionSet selectionSet,
+                          Message.Builder builder,
+                          boolean checkFieldMask) {
         if (input == null) {
             return builder.build();
         }
@@ -50,7 +54,7 @@ public class DynamicMessageBuilder {
         var remainingInput = new HashMap<>(input);
         for (var field : descriptor.getFields()) {
             var fieldName = field.getName();
-            if (Descriptors.FieldDescriptor.Type.MESSAGE.equals(field.getType()) && "google.protobuf.FieldMask".equals(field.getMessageType().getFullName())) {
+            if (checkFieldMask && Descriptors.FieldDescriptor.Type.MESSAGE.equals(field.getType()) && "google.protobuf.FieldMask".equals(field.getMessageType().getFullName())) {
                 var selectedFields = new HashSet<String>();
                 fillSelectedFields(selectedFields, "", selectionSet);
                 var fieldMask = FieldMask.newBuilder()
@@ -173,7 +177,7 @@ public class DynamicMessageBuilder {
                                 .orElseGet(() -> NullableBytes.newBuilder().setNullValue(NULL_VALUE).build());
                     }
                 }
-                return build(fieldTypeDescriptor, (Map<String, Object>) value, selectionSet, builder.newBuilderForField(field));
+                return build(fieldTypeDescriptor, (Map<String, Object>) value, selectionSet, builder.newBuilderForField(field), false);
             }
             case ENUM -> {
                 var enumDescriptor = enumMapping.get(getReferenceName(field.getEnumType()));
