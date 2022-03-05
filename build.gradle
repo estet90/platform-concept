@@ -13,9 +13,6 @@ subprojects {
         apply plugin: "io.quarkus"
     }
 
-    sourceCompatibility = 17
-    targetCompatibility = 17
-
     group "ru.craftysoft"
     version "1.0.0"
 
