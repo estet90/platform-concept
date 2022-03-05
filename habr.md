@@ -52,7 +52,7 @@ public class StarWarsResource {
 ```
 Однако такой клиент не даёт возможности делать частичное обновление или выбирать поля для формирования ответа.  
 [Dynamic-клиент](https://quarkus.io/guides/smallrye-graphql-client#using-the-dynamic-client) очень гибкий. 
-Можно передавать какой угодно набор полей, можно использовать [переменные](https://graphql.org/learn/queries/#variables), можно задавать список полей, которые мы хотим получить ответ.
+Можно передавать какой угодно набор полей, можно использовать [переменные](https://graphql.org/learn/queries/#variables), можно задавать список полей, которые мы хотим получить в ответе.
 ```java
 public class StarWarsResource {
 
@@ -83,7 +83,7 @@ public class StarWarsResource {
 ```
 Но это очень громоздко. К тому же при формировании запроса можно допустить ошибку.  
 В gRPC есть возможность генерировать типобезопасные контроллеры и клиенты. А для ограничения списка полей, которые возвращаются в ответ, есть специальный тип - [FieldMask](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/field-mask).  
-В gRPC в качестве формата запросов-ответов используется protobuf. Его же мы используем сообщений в асинхронном взаимодействии через kafka. 
+В gRPC в качестве формата запросов-ответов используется protobuf. Его же мы используем для сообщений в асинхронном взаимодействии через kafka. 
 Т.о. нам не нужно плодить форматы, и мы можем использовать на бэке что-то одно.  
 Часто, когда говорят о преимуществах gRPC, упоминают возможность потоковой передачи данных, снижающей накладные расходы. 
 Мы к этому пока не пришли, но хотелось бы иметь такую возможность в будущем.  
@@ -101,14 +101,13 @@ public class StarWarsResource {
 # Реализация
 Список основных требований к концепту:
 * Сервис должен быть написан на Java/Quarkus.
-* В сервисе не должно быть кодогенерации.
+* В сервисе не должно быть кодогенерации DTO и стабов, которые необходимо использовать для вызова сервисов.
 * В сервисе должна быть возможность "горячего обновления" контракта. При изменении сервисов на бэке не должно быть необходимости править код API Gateway.
 * Поддержка batch-запросов.
 
 ## Необходимые зависимости
 ```groovy
 ext {
-        protobufVersion = "3.19.3"
         quarkusVersion = "2.7.2.Final"
         graphqlVersion = "17.0"
         lombokVersion = "1.18.22"
@@ -310,22 +309,63 @@ public class RouterConfiguration {
 ### Роутинг
 При обработке запроса сначала нужно определить, куда его нужно перенаправить. У меня роутинг зашит прямо в конфигурационном файле приложения. 
 Это оптимальное решение для концепта, но для реального рабочего проекта лучше использовать централизованное хранилище (БД, внешний кэш).  
-Конфигурация роутинга:
+Конфигурация роутинга в application.yaml:
 ```yaml
 graphql:
-  servers-by-methods:
-    filter: grpc-server
-    getById: grpc-server
-    update: grpc-server
+  services-by-methods:
+    filter: grpc-service
+    getById: grpc-service
+    update: grpc-service
 grpc:
-  servers:
-    grpc-server:
+  services:
+    grpc-service:
       service-name: "ru.craftysoft.platform.grpcservice.proto.GrpcService"
       host: 0.0.0.0
       port: 9000
       reflection-client-deadline: 1000
       dynamic-client-deadline: 2000
 ```
+Маппинг методов:
+```java
+package ru.craftysoft.platform.gateway.configuration.property;
+
+import io.smallrye.config.ConfigMapping;
+
+import java.util.Map;
+
+@ConfigMapping(prefix = "graphql")
+public interface GraphQlServersByMethodsMap {
+
+    Map<String, String> serversByMethods();
+
+}
+```
+Маппинг gRPC-сервисов:
+```java
+package ru.craftysoft.platform.gateway.configuration.property;
+
+import io.smallrye.config.ConfigMapping;
+
+import java.util.Map;
+
+@ConfigMapping(prefix = "grpc")
+public interface GrpcClientConfigurationMap {
+    Map<String, ServerConfiguration> services();
+
+    interface ServerConfiguration {
+        String serviceName();
+
+        String host();
+
+        int port();
+
+        long reflectionClientDeadline();
+
+        long dynamicClientDeadline();
+    }
+}
+```
+Подробнее про конфигурацию Quarkus-приложения можно почитать в [документации](https://quarkus.io/guides/config-mappings).  
 Для простоты я не делал маппинг методов GraphQL в методы gRPC и считаю, что у они у нас будут называться одинаково. Т.о. мне остаётся лишь смаппить метод GraphQL в сервис gRPC.
 
 ### Получение дескриптора gRPC
@@ -380,7 +420,8 @@ public ServerReflectionRequest build(String serviceName) {
 В Quarkus активно используется библиотека [smallrye-mutiny](https://smallrye.io/smallrye-mutiny/), а Uni - это одно из представлений результата, аналог Mono из [project-reactor](https://projectreactor.io/).  
 Из полученного ответа нам требуется извлечь дескриптор сервиса, в котором хранится информация о сущностях и методах. 
 В ответе сервиса приходит `com.google.protobuf.DescriptorProtos.FileDescriptorProto` в бинарном виде. 
-Из него необходимо извлечь информацию о контракте с учётом всех его зависимостей, т.к. контракт может содержать информацию из разных файлов, включая proto-файлы из стандартной библиотеки и импортированных библиотек.
+Из него необходимо получить информацию о контракте с учётом всех его зависимостей, т.к. контракт может содержать информацию из разных файлов, 
+включая proto-файлы из стандартной библиотеки и импортированных библиотек.
 
 ### Формирование и отправка запроса к gRPC-сервису
 Маппинг JSON-запроса в запрос к gRPC-сервису я подсмотрел в проекте Rejoiner, который упоминал ранее, и добавил туда маппинг классов-обёрток для nullable-типов.  
@@ -468,7 +509,7 @@ public class DynamicMessageMethodDescriptorBuilder {
 # В качестве бонуса
 ## Hot reload
 Одним из требований к приложению было наличие возможности перезагрузки контракта без остановки приложения. 
-Это не имеет смысла, если хранить контракт в самом приложении (как сейчас), но если держать его в БД/кэше, функция очень полезная. 
+Это не имеет смысла, если хранить контракт в самом приложении (как сейчас), но если держать его в БД/кэше/хранилище схем, функция очень полезная. 
 У меня это реализуется за счёт пересоздания `io.vertx.ext.web.Route`.  
 Новый метод в MainHandler:
 ```java

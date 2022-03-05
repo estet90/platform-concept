@@ -1,11 +1,11 @@
 graphql:
-  servers-by-methods:
-    filter: grpc-server
-    getById: grpc-server
-    update: grpc-server
+  services-by-methods:
+    filter: grpc-service
+    getById: grpc-service
+    update: grpc-service
 grpc:
-  servers:
-    grpc-server:
+  services:
+    grpc-service:
       service-name: "ru.craftysoft.platform.grpcservice.proto.GrpcService"
       host: 0.0.0.0
       port: 9000

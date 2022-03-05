@@ -37,7 +37,7 @@ public class GrpcClientConfiguration {
     private <T> Map<String, T> clientMap(GrpcClientConfigurationMap configurationMap,
                                          Class<T> clientClass,
                                          BiFunction<GrpcClientConfigurationMap.ServerConfiguration, Channel, T> clientBuilder) {
-        return configurationMap.servers().entrySet().stream()
+        return configurationMap.services().entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
                     var channel = ManagedChannelBuilder.forTarget(entry.getValue().host() + ":" + entry.getValue().port())
                             .usePlaintext()

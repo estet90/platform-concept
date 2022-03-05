@@ -5,8 +5,8 @@ import io.smallrye.config.ConfigMapping;
 import java.util.Map;
 
 @ConfigMapping(prefix = "graphql")
-public interface GraphQlServersByMethodsMap {
+public interface GraphQlServicesMethodsMap {
 
-    Map<String, String> serversByMethods();
+    Map<String, String> servicesByMethods();
 
 }
