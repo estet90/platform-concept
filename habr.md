@@ -1,5 +1,7 @@
+![](api_gateway.png)  
 API Gateway является одним из обязательных компонентов архитектуры современных систем. Он может решать различные задачи:
-* Проксирование вызовов из одной точки в разные сервисы. Контроль доступа к ним.
+* Проксирование вызовов из одной точки в разные сервисы в разных форматах. Контроль доступа к ним.
+* Мониторинг.
 * Аутентификация и авторизация.
 * Агрегация данных (один запрос к API Gateway - несколько запросов к бэку).
 * Управление таймаутами.
@@ -7,6 +9,7 @@ API Gateway является одним из обязательных компо
 * Валидация.
 * И многое другое.
 
+При отсутствии API Gateway все эти задачи ложатся на бэкенд. И если для монолита это может быть оправдано, то в микросервисах любое изменение общей логики повлечёт доработку всех зависимых сервисов.  
 Есть много интересных готовых решений, в т.ч. и для нашего кейса (GraphQL <-> gRPC), но ни одно из них не подошло нам в полной мере.
 
 # Почему GraphQL
@@ -108,7 +111,7 @@ public class StarWarsResource {
 ## Необходимые зависимости
 ```groovy
 ext {
-        quarkusVersion = "2.7.2.Final"
+        quarkusVersion = "2.7.4.Final"
         graphqlVersion = "17.0"
         lombokVersion = "1.18.22"
 }
@@ -145,7 +148,7 @@ dependencies {
 Серверная часть для GraphQL и обёртка для работы с gRPC в Quarkus написана без использования Vertx.`
 
 ## Конфигурация
-Как сконфигурировать серверную часть GraphQL, можно посмотреть в [документации Vertx](https://vertx.io/docs/vertx-web-graphql/java/). 
+Как сконфигурировать серверную часть GraphQL, можно посмотреть в [документации Vertx](https://vertx.io/docs/vertx-web-graphql/java/) и [документации graphql-java](https://www.graphql-java.com/documentation/getting-started). 
 В итоге у меня получилась такая конфигурация:
 ```java
 package ru.craftysoft.platform.gateway.configuration;
@@ -221,6 +224,13 @@ public class GraphQlFactory {
 
 }
 ```
+В основном методе выполняются следующие действия:
+* парсится схема graphql
+* добавляются обработчики аннотаций (в данном случае это `SizeConstraint` из библиотеки [graphql-java-extended-validation](https://github.com/graphql-java/graphql-java-extended-validation), 
+который обеспечивает обработку директивы [@Size](https://github.com/graphql-java/graphql-java-extended-validation#size))
+* добавляются обработчики для методов `Query` и `Mutation` (в нашем случае это один обработчик для всех методов)
+* добавляются скаляры `GraphQLLong`, `DateTime`, `Date` для поддержки соответствующих типов.
+
 Определение бина `GraphQL`:
 ```java
 package ru.craftysoft.platform.gateway.configuration;
@@ -267,7 +277,6 @@ import javax.enterprise.context.ApplicationScoped;
 public class MainHandler {
 
     private final GraphQL graphQl;
-    private final MainResolver mainResolver;
     private final GraphQLHandlerOptions graphQlHandlerOptions = new GraphQLHandlerOptions().setRequestBatchingEnabled(true);
 
     public void graphqlHandle(RoutingContext routingContext) {
@@ -309,7 +318,7 @@ public class RouterConfiguration {
 ### Роутинг
 При обработке запроса сначала нужно определить, куда его нужно перенаправить. У меня роутинг зашит прямо в конфигурационном файле приложения. 
 Это оптимальное решение для концепта, но для реального рабочего проекта лучше использовать централизованное хранилище (БД, внешний кэш).  
-Конфигурация роутинга в application.yaml:
+Конфигурация роутинга в `application.yaml`:
 ```yaml
 graphql:
   services-by-methods:
@@ -409,10 +418,21 @@ public class ReflectionGrpcClient {
 ```
 Формирование запроса:
 ```java
-public ServerReflectionRequest build(String serviceName) {
-    return ServerReflectionRequest.newBuilder()
-            .setFileContainingSymbol(serviceName)
-            .build();
+package ru.craftysoft.platform.gateway.builder.reflection;
+
+import io.grpc.reflection.v1alpha.ServerReflectionRequest;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class ServerReflectionRequestBuilder {
+
+    public ServerReflectionRequest build(String serviceName) {
+        return ServerReflectionRequest.newBuilder()
+                .setFileContainingSymbol(serviceName)
+                .build();
+    }
+
 }
 ```
 `serviceName` - полное название сервиса, которое я получаю из конфига, например `ru.craftysoft.platform.grpcservice.proto.GrpcService`.  
@@ -428,7 +448,7 @@ public ServerReflectionRequest build(String serviceName) {
 `Примечание: в protobuf нельзя передать null-значение. В отдельных случаях можно использовать стандартные классы-обёртки, 
 которые есть в библиотеке, такие как StringValue, BooleanValue, рассматривая их значение по умолчанию как null. 
 Но если для строк (в нашем случае) это будет работать, т.к. значением по умолчанию там является пустая строка, то 0 для числовых значений для нас неприемлем. 
-Я написал небольшой proto-файл с обёртками для примитивов, в котором используется google.protobuf.NullValue для корректной работы с null.`  
+Я подготовил небольшой proto-файл с обёртками для примитивов, в котором используется google.protobuf.NullValue для корректной работы с null.`  
 Ограничения маппинга:
 * Нельзя смаппить запрос, принимающий более одного параметра.
 * Нет маппинга для [oneof](https://developers.google.com/protocol-buffers/docs/proto3#oneof). Исключением являются кастомные nullable-типы.
@@ -503,7 +523,9 @@ public class DynamicMessageMethodDescriptorBuilder {
 
 # Результат
 Готовый проект можно посмотреть на [Github](https://github.com/estet90/platform-concept/tree/master). 
-Он включает в себя API Gateway, небольшой gRPC-сервис и библиотеку с nullable-типами. 
+Он включает в себя [API Gateway](https://github.com/estet90/platform-concept/tree/master/gateway), 
+[небольшой gRPC-сервис](https://github.com/estet90/platform-concept/tree/master/grpc-service) 
+и [библиотеку с nullable-типами](https://github.com/estet90/platform-concept/tree/master/proto-model). 
 Несмотря на имеющиеся ограничения, этот проект может быть основой полноценного API Gateway.
 
 # В качестве бонуса
@@ -511,7 +533,7 @@ public class DynamicMessageMethodDescriptorBuilder {
 Одним из требований к приложению было наличие возможности перезагрузки контракта без остановки приложения. 
 Это не имеет смысла, если хранить контракт в самом приложении (как сейчас), но если держать его в БД/кэше/хранилище схем, функция очень полезная. 
 У меня это реализуется за счёт пересоздания `io.vertx.ext.web.Route`.  
-Новый метод в MainHandler:
+Новый метод в `MainHandler`:
 ```java
 public void refreshHandle(RoutingContext routingContext) {
     var contract = ofNullable(routingContext.getBody())
@@ -550,7 +572,7 @@ public Router router(Vertx vertx, MainHandler mainHandler) {
 Изначально на каждый запрос с фронта делался запрос на получение дескриптора. И хотя выполняется он достаточно быстро, нет смысла делать его каждый раз, 
 т.к. контракт меняется нечасто. Поэтому ответ можно закэшировать. Для кэширования я взял библиотеку [quarkus-cache](https://quarkus.io/guides/cache), 
 использующую [Caffeine](https://github.com/ben-manes/caffeine).  
-Новая зависимость в build.gradle:
+Новая зависимость в `build.gradle`:
 ```groovy
 implementation("io.quarkus:quarkus-cache")
 ```
@@ -572,7 +594,7 @@ Uni<Descriptors.FileDescriptor> serverReflectionInfo(@CacheKey ServiceKey servic
 private record ServiceKey(String serverName, String serviceName) {
 }
 ```
-Конфигурация кэша в application.yaml:
+Конфигурация кэша в `application.yaml`:
 ```yaml
 quarkus:
   cache:
@@ -584,19 +606,15 @@ quarkus:
 Инвалидация кэша при обновлении контракта:
 ```java
 public void refreshHandle(RoutingContext routingContext) {
-    routingContext.vertx().executeBlocking(event -> {
-        invalidateCache();
-        event.complete();
-    });
+    invalidateCache().subscribe().asCompletionStage();
     // пересоздание Route
 }
 
 @CacheInvalidateAll(cacheName = "server-reflection-info")
-void invalidateCache() {
+Uni<Void> invalidateCache() {
+    return Uni.createFrom().voidItem();
 }
 ```
 Несмотря на то, что кэшируемый метод возвращает Uni, кэшируется именно результат. 
 При повторном запросе по тому же ключу запрос в gRPC-сервис за дескриптором уже не делается. 
-Если возвращается ошибка при запросе к дескриптору, результат не кэшируется. 
-При инвалидации кэша необходимо учитывать, что этот метод блокирует [event-loop](https://vertx.io/docs/vertx-core/java/#_dont_block_me), 
-поэтому его необходимо обернуть в [executeBlocking()](https://vertx.io/docs/vertx-core/java/#blocking_code).
+Если возвращается ошибка при запросе к дескриптору, результат не кэшируется.

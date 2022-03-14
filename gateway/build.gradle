@@ -15,6 +15,13 @@ dependencies {
 
 quarkusBuild {
     nativeArgs {
-        additionalBuildArgs = "--initialize-at-run-time=org.hibernate.validator.internal.constraintvalidators.bv.time.pastorpresent.PastOrPresentValidatorForReadablePartial\\,org.hibernate.validator.internal.constraintvalidators.bv.time.past.PastValidatorForReadablePartial\\,org.hibernate.validator.internal.constraintvalidators.bv.time.futureorpresent.FutureOrPresentValidatorForReadablePartial\\,org.hibernate.validator.internal.constraintvalidators.bv.time.future.FutureValidatorForReadablePartial\\,org.hibernate.validator.internal.constraintvalidators.bv.time.past.PastValidatorForReadablePartial\\,org.hibernate.validator.internal.constraintvalidators.bv.time.futureorpresent.FutureOrPresentValidatorForReadablePartial\\,org.hibernate.validator.internal.constraintvalidators.bv.time.future.FutureValidatorForReadablePartial\\,org.hibernate.validator.internal.constraintvalidators.bv.time.past.PastValidatorForReadablePartial\\,org.hibernate.validator.internal.constraintvalidators.bv.time.futureorpresent.FutureOrPresentValidatorForReadablePartial\\,org.hibernate.validator.internal.constraintvalidators.bv.time.future.FutureValidatorForReadablePartial"
+        def validatorPackage = "org.hibernate.validator.internal.constraintvalidators.bv.time"
+        def classes = [
+                "--initialize-at-run-time=${validatorPackage}.pastorpresent.PastOrPresentValidatorForReadablePartial",
+                "${validatorPackage}.past.PastValidatorForReadablePartial",
+                "${validatorPackage}.futureorpresent.FutureOrPresentValidatorForReadablePartial",
+                "${validatorPackage}.future.FutureValidatorForReadablePartial"
+        ]
+        additionalBuildArgs = classes.join("\\,")
     }
 }
