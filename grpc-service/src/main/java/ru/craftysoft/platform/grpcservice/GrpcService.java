@@ -1,5 +1,6 @@
 package ru.craftysoft.platform.grpcservice;
 
+import com.google.protobuf.Empty;
 import com.google.protobuf.NullValue;
 import com.google.type.Date;
 import io.grpc.stub.StreamObserver;
@@ -43,6 +44,15 @@ public class GrpcService extends GrpcServiceGrpc.GrpcServiceImplBase {
         var response = UpdateResponse.newBuilder()
                 .setId(1L)
                 .setName("test")
+                .build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void empty(Empty request, StreamObserver<EmptyResponse> responseObserver) {
+        var response = EmptyResponse.newBuilder()
+                .setId(1)
                 .build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();

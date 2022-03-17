@@ -3,6 +3,7 @@ graphql:
     filter: grpc-service
     getById: grpc-service
     update: grpc-service
+    empty: grpc-service
 grpc:
   services:
     grpc-service:

@@ -6,6 +6,7 @@ schema {
 type Query {
     filter(request: FilterRequest!) : FilterResponse!
     getById(request: GetByIdRequest!): GetByIdResponse!
+    empty: EmptyResponse!
 }
 
 type Mutation {
@@ -57,6 +58,10 @@ input GetByIdRequest {
 
 type GetByIdResponse {
     type: Type
+}
+
+type EmptyResponse {
+    id: Long!
 }
 
 enum Type {

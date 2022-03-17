@@ -5,7 +5,7 @@ package ru.craftysoft.platform.grpcservice.proto;
 option java_multiple_files = true;
 
 import "google/type/date.proto";
-import "google/protobuf/field_mask.proto";
+import "google/protobuf/empty.proto";
 
 import "wrapper.proto";
 
@@ -15,6 +15,7 @@ service GrpcService {
   rpc filter(FilterRequest) returns (FilterResponse);
   rpc update(UpdateRequest) returns (UpdateResponse);
   rpc getById(GetByIdRequest) returns (GetByIdResponse);
+  rpc empty(google.protobuf.Empty) returns (EmptyResponse);
 }
 
 message FilterRequest {
@@ -22,7 +23,6 @@ message FilterRequest {
   string name = 2;
   google.type.Date date = 3;
   Wrapper wrapper = 4;
-  google.protobuf.FieldMask fieldMask = 5;
 }
 
 message FilterResponse {
@@ -58,6 +58,10 @@ message GetByIdRequest {
 
 message GetByIdResponse {
   Type type = 1;
+}
+
+message EmptyResponse {
+  int64 id = 1;
 }
 
 enum Type {

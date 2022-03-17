@@ -117,11 +117,8 @@ ext {
 }
 
 dependencies {
-        implementation platform("io.quarkus:quarkus-bom:$quarkusVersion")
-}
-
-dependencies {
     implementation(
+            platform("io.quarkus:quarkus-bom:$quarkusVersion"),
             "io.quarkus:quarkus-config-yaml",
             "io.quarkus:quarkus-grpc-common",
             "io.quarkus:quarkus-grpc-stubs",
@@ -325,6 +322,7 @@ graphql:
     filter: grpc-service
     getById: grpc-service
     update: grpc-service
+    empty: grpc-service
 grpc:
   services:
     grpc-service:
