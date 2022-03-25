@@ -16,7 +16,7 @@ API Gateway является одним из обязательных компо
 На нашем проекте API Gateway нужен в основном для запросов с фронта. Когда мы только начинали, основным видом взаимодействия был REST. 
 Он достаточно прост для понимания и реализации, но в процессе развития проекта начали проявляться его недостатки:
 * При обновлении сущности, даже если обновить нужно пару полей, мы обновляли весь объект. 
-Да, можно использовать метод PATCH и парсить на бэке только переданные поля, рассматривая отдельное переданное поле со значением null и случай, 
+Да, можно использовать метод PATCH и парсить на бэке только переданные поля, рассматривая отдельно переданное поле со значением null и случай, 
 когда поле не передано, но это не стандартный подход для REST.
 * Не всегда при запросе на получение сущности нужны все поля. Можно сделать несколько методов вместо одного, 
 но тогда для каждого кейса придётся делать отдельный метод. 
@@ -494,14 +494,11 @@ public class DynamicMessageMethodDescriptorBuilder {
         }
 
         @Override
+        @SneakyThrows
         public DynamicMessage parse(InputStream inputStream) {
-            try {
-                return DynamicMessage.newBuilder(messageDescriptor)
-                        .mergeFrom(inputStream, ExtensionRegistryLite.getEmptyRegistry())
-                        .build();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            return DynamicMessage.newBuilder(messageDescriptor)
+                    .mergeFrom(inputStream, ExtensionRegistryLite.getEmptyRegistry())
+                    .build();
         }
 
         @Override

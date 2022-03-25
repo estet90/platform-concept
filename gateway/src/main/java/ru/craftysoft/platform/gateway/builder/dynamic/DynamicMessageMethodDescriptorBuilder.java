@@ -4,9 +4,9 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.ExtensionRegistryLite;
 import io.grpc.MethodDescriptor;
+import lombok.SneakyThrows;
 
 import javax.enterprise.context.ApplicationScoped;
-import java.io.IOException;
 import java.io.InputStream;
 
 import static io.grpc.MethodDescriptor.MethodType.UNARY;
@@ -35,14 +35,11 @@ public class DynamicMessageMethodDescriptorBuilder {
         }
 
         @Override
+        @SneakyThrows
         public DynamicMessage parse(InputStream inputStream) {
-            try {
-                return DynamicMessage.newBuilder(messageDescriptor)
-                        .mergeFrom(inputStream, ExtensionRegistryLite.getEmptyRegistry())
-                        .build();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            return DynamicMessage.newBuilder(messageDescriptor)
+                    .mergeFrom(inputStream, ExtensionRegistryLite.getEmptyRegistry())
+                    .build();
         }
 
         @Override
