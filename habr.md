@@ -126,6 +126,7 @@ dependencies {
             "com.graphql-java:graphql-java-extended-validation:$graphqlVersion",
             "io.vertx:vertx-web-graphql",
             "com.google.protobuf:protobuf-java-util",
+            "com.fasterxml.jackson.core:jackson-databind",
     )
     compileOnly("org.projectlombok:lombok:$lombokVersion")
     annotationProcessor("org.projectlombok:lombok:$lombokVersion")
@@ -135,6 +136,7 @@ dependencies {
 `graphql-java-extended-scalars` - добавляет скаляры GraphQL. Из коробки поддерживается не так много типов, поэтому без использования этой зависимости не обойтись.  
 `graphql-java-extended-validation` - добавляет директивы для валидации запросов.  
 `protobuf-java-util` - нужно для логирования запросов-ответов от gRPC-сервера в формате JSON.  
+`jackson-databind` - нужно для корректного логирования в формате JSON  
 `vertx-web-graphql` - нужно для конфигурации серверной части GraphQL с помощью... Vertx.  
 Хотя Quarkus и является основным фреймворком для приложения, но он, к сожалению, больше заточен на подход code-first, 
 а мы строго придерживаемся подхода contract-first. К тому же при подходе code-first нам бы не удалось реализовать какой-то универсальный обработчик. 
@@ -179,6 +181,8 @@ import static lombok.AccessLevel.PRIVATE;
 @NoArgsConstructor(access = PRIVATE)
 public class GraphQlFactory {
 
+    private static final LoggingInstrumentation loggingInstrumentation = new LoggingInstrumentation();
+
     public static <T> GraphQL graphQl(Function<DataFetchingEnvironment, Future<T>> dataFetcher, String graphql) {
         var typeRegistry = new SchemaParser().parse(graphql);
         var validationRules = ValidationRules.newValidationRules()
@@ -197,6 +201,7 @@ public class GraphQlFactory {
                 .build();
         var graphQLSchema = new SchemaGenerator().makeExecutableSchema(typeRegistry, runtimeWiring);
         return GraphQL.newGraphQL(graphQLSchema)
+                .instrumentation(loggingInstrumentation)
                 .build();
     }
 
@@ -226,7 +231,8 @@ public class GraphQlFactory {
 * добавляются обработчики аннотаций (в данном случае это `SizeConstraint` из библиотеки [graphql-java-extended-validation](https://github.com/graphql-java/graphql-java-extended-validation), 
 который обеспечивает обработку директивы [@Size](https://github.com/graphql-java/graphql-java-extended-validation#size))
 * добавляются обработчики для методов `Query` и `Mutation` (в нашем случае это один обработчик для всех методов)
-* добавляются скаляры `GraphQLLong`, `DateTime`, `Date` для поддержки соответствующих типов.
+* добавляются скаляры `GraphQLLong`, `DateTime`, `Date` для поддержки соответствующих типов
+* добавляется [Instrumentation](https://www.graphql-java.com/documentation/instrumentation/) для логирования.
 
 Определение бина `GraphQL`:
 ```java

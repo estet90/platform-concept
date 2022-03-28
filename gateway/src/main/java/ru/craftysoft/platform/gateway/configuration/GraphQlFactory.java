@@ -29,6 +29,8 @@ import static lombok.AccessLevel.PRIVATE;
 @NoArgsConstructor(access = PRIVATE)
 public class GraphQlFactory {
 
+    private static final LoggingInstrumentation loggingInstrumentation = new LoggingInstrumentation();
+
     public static <T> GraphQL graphQl(Function<DataFetchingEnvironment, Future<T>> dataFetcher, String graphql) {
         var typeRegistry = new SchemaParser().parse(graphql);
         var validationRules = ValidationRules.newValidationRules()
@@ -47,6 +49,7 @@ public class GraphQlFactory {
                 .build();
         var graphQLSchema = new SchemaGenerator().makeExecutableSchema(typeRegistry, runtimeWiring);
         return GraphQL.newGraphQL(graphQLSchema)
+                .instrumentation(loggingInstrumentation)
                 .build();
     }
 

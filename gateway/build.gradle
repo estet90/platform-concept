@@ -8,6 +8,7 @@ dependencies {
             "com.graphql-java:graphql-java-extended-validation:$graphqlVersion",
             "io.vertx:vertx-web-graphql",
             "com.google.protobuf:protobuf-java-util",
+            "com.fasterxml.jackson.core:jackson-databind",
     )
     compileOnly("org.projectlombok:lombok:$lombokVersion")
     annotationProcessor("org.projectlombok:lombok:$lombokVersion")
