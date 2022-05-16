@@ -4,11 +4,14 @@ dependencies {
             "io.quarkus:quarkus-grpc-common",
             "io.quarkus:quarkus-grpc-stubs",
             "io.quarkus:quarkus-cache",
+            "com.graphql-java:graphql-java:$graphqlVersion",
             "com.graphql-java:graphql-java-extended-scalars:$graphqlVersion",
-            "com.graphql-java:graphql-java-extended-validation:$graphqlVersion",
+            "com.graphql-java:graphql-java-extended-validation:$graphqlJavaExtendedValidationVersion",
             "io.vertx:vertx-web-graphql",
             "com.google.protobuf:protobuf-java-util",
             "com.fasterxml.jackson.core:jackson-databind",
+            "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+            "com.atlassian:nadel:$nadelVersion"
     )
     compileOnly("org.projectlombok:lombok:$lombokVersion")
     annotationProcessor("org.projectlombok:lombok:$lombokVersion")

@@ -1,15 +1,11 @@
-package ru.craftysoft.platform.gateway.configuration;
+package ru.craftysoft.platform.gateway.configuration.instrumentation;
 
 import graphql.ExecutionResult;
 import graphql.execution.instrumentation.InstrumentationContext;
 import graphql.execution.instrumentation.SimpleInstrumentation;
-import graphql.execution.instrumentation.SimpleInstrumentationContext;
 import graphql.execution.instrumentation.parameters.InstrumentationExecutionParameters;
-import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.util.Optional.ofNullable;
 
 public class LoggingInstrumentation extends SimpleInstrumentation {
 
@@ -34,24 +30,7 @@ public class LoggingInstrumentation extends SimpleInstrumentation {
             }
         }
 
-        return new SimpleInstrumentationContext<>() {
-            @Override
-            public void onCompleted(ExecutionResult executionResult, Throwable t) {
-                if (t != null) {
-                    responseLogger.error("error", t);
-                } else {
-                    if (responseLogger.isTraceEnabled()) {
-                        var result = ofNullable(executionResult.toSpecification())
-                                .map(JsonObject::mapFrom)
-                                .map(JsonObject::toString)
-                                .orElse(null);
-                        responseLogger.trace("result={}", result);
-                    } else {
-                        responseLogger.debug("result");
-                    }
-                }
-            }
-        };
+        return new LoggingSimpleInstrumentationContext(operation, responseLogger);
     }
 
 }

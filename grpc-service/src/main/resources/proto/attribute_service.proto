@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package ru.craftysoft.platform.grpcservice.proto;
+
+option java_multiple_files = true;
+
+import "ru/craftysoft/proto/wrappers.proto";
+
+service AttributeService {
+  rpc attributeFilter(AttributeFilterRequest) returns (AttributeFilterResponse);
+}
+
+message AttributeFilterRequest {
+  int64 documentId = 1;
+}
+
+message AttributeFilterResponse {
+  repeated Attribute attributes = 1;
+}
+
+message Attribute {
+  int64 id = 1;
+  string name = 2;
+  ru.craftysoft.proto.NullableString value = 3;
+  int64 documentId = 4;
+}

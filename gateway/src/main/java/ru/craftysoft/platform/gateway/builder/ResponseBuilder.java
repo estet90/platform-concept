@@ -18,16 +18,38 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class ResponseBuilder {
 
-    public Map<String, Object> build(DynamicMessage dynamicMessage) {
+    public Object build(DynamicMessage dynamicMessage) {
+        return dynamicMessage.getAllFields().size() == 1 && dynamicMessage.getAllFields().entrySet().iterator().next().getKey().isRepeated()
+                ? buildList(dynamicMessage)
+                : buildMap(dynamicMessage);
+    }
+
+    public Map<String, Object> buildMap(DynamicMessage dynamicMessage) {
         var result = new HashMap<String, Object>();
         dynamicMessage.getAllFields().forEach(((fieldDescriptor, o) -> fillResponse(fieldDescriptor, o, result)));
         return result;
     }
 
+    public List<Object> buildList(DynamicMessage dynamicMessage) {
+        var result = new ArrayList<>();
+        dynamicMessage.getAllFields().values().forEach((o -> fillResponse(o, result)));
+        return result;
+    }
+
+    private void fillResponse(Object object, List<Object> result) {
+        var values = (List<?>) object;
+        for (var value : values) {
+            if (value instanceof DynamicMessage dynamicMessage) {
+                var dynamicMessageValue = resolveDynamicMessageValue(dynamicMessage);
+                result.add(dynamicMessageValue);
+            }
+        }
+    }
+
     private void fillResponse(Descriptors.FieldDescriptor fieldDescriptor, Object object, HashMap<String, Object> result) {
         var name = fieldDescriptor.getName();
         if (fieldDescriptor.isRepeated()) {
-            var values = (List<Object>) object;
+            var values = (List<?>) object;
             var list = new ArrayList<>();
             for (var value : values) {
                 if (value instanceof DynamicMessage dynamicMessage) {

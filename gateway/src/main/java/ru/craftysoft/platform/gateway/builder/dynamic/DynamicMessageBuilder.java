@@ -11,11 +11,14 @@ import graphql.schema.DataFetchingFieldSelectionSet;
 import ru.craftysoft.proto.*;
 
 import javax.enterprise.context.ApplicationScoped;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.google.protobuf.Descriptors.FieldDescriptor.JavaType.FLOAT;
 import static com.google.protobuf.NullValue.NULL_VALUE;
 import static java.util.Optional.ofNullable;
 
@@ -74,7 +77,19 @@ public class DynamicMessageBuilder {
                 }
             } else {
                 var valueForField = getValueForField(descriptorMapping, enumMapping, field, remainingInput.remove(fieldName), selectionSet, builder);
-                builder.setField(field, valueForField);
+                final Object resolvedValueForField;
+                if (valueForField instanceof BigInteger bigInteger) {
+                    resolvedValueForField = bigInteger.longValue();
+                } else if (valueForField instanceof BigDecimal bigDecimal) {
+                    if (FLOAT.equals(field.getJavaType())) {
+                        resolvedValueForField = bigDecimal.floatValue();
+                    } else {
+                        resolvedValueForField = bigDecimal.doubleValue();
+                    }
+                } else {
+                    resolvedValueForField = valueForField;
+                }
+                builder.setField(field, resolvedValueForField);
             }
         }
         return builder.build();

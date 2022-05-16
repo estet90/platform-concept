@@ -2,7 +2,7 @@ package ru.craftysoft.platform.gateway.service.client.grpc;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
-import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingFieldSelectionSet;
 import io.smallrye.mutiny.Uni;
 import ru.craftysoft.platform.gateway.builder.dynamic.DescriptorResolver;
 import ru.craftysoft.platform.gateway.builder.dynamic.DynamicMessageBuilder;
@@ -33,15 +33,17 @@ public class DynamicGrpcClientAdapter {
         this.methodDescriptorResolver = methodDescriptorResolver;
     }
 
-    public Uni<DynamicMessage> processRequest(DataFetchingEnvironment environment,
+    public Uni<DynamicMessage> processRequest(String methodName,
+                                              Map<String, Object> request,
+                                              DataFetchingFieldSelectionSet selectionSet,
                                               Descriptors.FileDescriptor fileDescriptor,
                                               String serverName,
                                               String serviceName) {
-        var method = methodDescriptorResolver.resolve(environment, fileDescriptor, serviceName);
+        var method = methodDescriptorResolver.resolve(methodName, fileDescriptor, serviceName);
         var inputTypeDescriptor = descriptorResolver.resolve(method.getInputType(), fileDescriptor);
         var outputTypeDescriptor = descriptorResolver.resolve(method.getOutputType(), fileDescriptor);
         var methodDescriptor = methodDescriptorBuilder.build(serviceName, method.getName(), inputTypeDescriptor, outputTypeDescriptor);
-        var message = requestBuilder.build(inputTypeDescriptor, environment.getArgument("request"), environment.getSelectionSet());
+        var message = requestBuilder.build(inputTypeDescriptor, request, selectionSet);
         var dynamicGrpcClient = dynamicGrpcClients.get(serverName);
         return dynamicGrpcClient.callUnary(message, methodDescriptor);
     }

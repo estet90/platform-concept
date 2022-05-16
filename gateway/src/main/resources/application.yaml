@@ -1,17 +1,31 @@
 graphql:
   services-by-methods:
-    filter: grpc-service
-    getById: grpc-service
-    update: grpc-service
-    empty: grpc-service
+    documentFilter: document-service
+    attributeFilter: attribute-service
+
 grpc:
   services:
-    grpc-service:
-      service-name: "ru.craftysoft.platform.grpcservice.proto.GrpcService"
+    document-service:
+      service-name: "ru.craftysoft.platform.grpcservice.proto.DocumentService"
       host: 0.0.0.0
       port: 9000
       reflection-client-deadline: 1000
       dynamic-client-deadline: 2000
+    attribute-service:
+      service-name: "ru.craftysoft.platform.grpcservice.proto.AttributeService"
+      host: 0.0.0.0
+      port: 9000
+      reflection-client-deadline: 1000
+      dynamic-client-deadline: 2000
+
+nadel:
+  graphql-contracts-by-services:
+    attribute-service: attribute-service.graphqls
+    document-service: document-service.graphqls
+  nadel-contracts-by-services:
+    attribute-service: attribute-service.graphqls
+    document-service: document-nadel-service.graphqls
+
 quarkus:
   cache:
     caffeine:

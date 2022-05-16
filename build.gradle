@@ -3,7 +3,7 @@ buildscript {
         gradlePluginPortal()
     }
     dependencies {
-        classpath "io.quarkus:gradle-application-plugin:2.7.4.Final"
+        classpath "io.quarkus:gradle-application-plugin:$quarkusVersion"
     }
 }
 
@@ -14,14 +14,6 @@ subprojects {
     }
 
     group "ru.craftysoft"
-    version "1.0.0"
-
-    ext {
-        protobufVersion = "3.19.3"
-        quarkusVersion = "2.7.4.Final"
-        graphqlVersion = "17.0"
-        lombokVersion = "1.18.22"
-    }
 
     dependencies {
         implementation platform("io.quarkus:quarkus-bom:$quarkusVersion")

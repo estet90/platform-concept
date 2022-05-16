@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.concurrent.TimeUnit;
 
 import static io.grpc.reflection.v1alpha.ServerReflectionGrpc.getServerReflectionInfoMethod;
+import static io.quarkus.grpc.stubs.ClientCalls.oneToOne;
 
 @RequiredArgsConstructor
 public class ReflectionGrpcClient {
@@ -23,7 +24,7 @@ public class ReflectionGrpcClient {
                         getServerReflectionInfoMethod(),
                         CallOptions.DEFAULT.withDeadline(Deadline.after(deadline, TimeUnit.MILLISECONDS))
                 );
-        return io.quarkus.grpc.runtime.ClientCalls.oneToOne(
+        return oneToOne(
                 request,
                 (message, streamObserver) -> io.grpc.stub.ClientCalls.asyncUnaryCall(call, message, streamObserver)
         );

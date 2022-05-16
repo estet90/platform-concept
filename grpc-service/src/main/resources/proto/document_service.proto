@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package ru.craftysoft.platform.grpcservice.proto;
+
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+import "ru/craftysoft/proto/wrappers.proto";
+
+service DocumentService {
+  rpc documentFilter(DocumentFilterRequest) returns (DocumentFilterResponse);
+}
+
+message DocumentFilterRequest {
+  repeated int64 ids = 1;
+  repeated string names = 2;
+  google.protobuf.Timestamp createdAtFrom = 3;
+  google.protobuf.Timestamp createdAtTo = 4;
+}
+
+message DocumentFilterResponse {
+  repeated Document documents = 1;
+}
+
+message Document {
+  int64 id = 1;
+  string name = 2;
+  google.protobuf.Timestamp createdAt = 3;
+}

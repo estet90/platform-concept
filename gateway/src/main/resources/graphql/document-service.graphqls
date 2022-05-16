@@ -1,0 +1,21 @@
+schema {
+    query: Query
+}
+
+type Query {
+    documentFilter(
+        ids: [Long!]
+        names: [String!]
+        createdAtFrom: DateTime
+        createdAtTo: DateTime
+    ) : [Document!]
+}
+
+type Document {
+    id: Long
+    name: String
+    createdAt: DateTime
+}
+
+scalar Long
+scalar DateTime

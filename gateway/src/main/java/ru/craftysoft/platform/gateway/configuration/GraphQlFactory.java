@@ -16,6 +16,7 @@ import graphql.validation.schemawiring.ValidationSchemaWiring;
 import io.vertx.core.Future;
 import io.vertx.ext.web.handler.graphql.schema.VertxDataFetcher;
 import lombok.NoArgsConstructor;
+import ru.craftysoft.platform.gateway.configuration.instrumentation.LoggingInstrumentation;
 
 import java.util.Collection;
 import java.util.List;

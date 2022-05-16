@@ -1,0 +1,16 @@
+schema {
+    query: Query
+}
+
+type Query {
+    attributeFilter(documentId: Long) : [Attribute!]
+}
+
+type Attribute {
+    id: Long
+    name: String
+    value: String
+    documentId: Long
+}
+
+scalar Long

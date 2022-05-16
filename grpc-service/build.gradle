@@ -1,12 +1,12 @@
 plugins {
-    id "com.google.protobuf" version "0.8.16"
+    id "com.google.protobuf" version "$protobufGradlePluginVersion"
 }
 
 dependencies {
     implementation(
             "io.quarkus:quarkus-grpc"
     )
-    protobuf files("src/main/resources")
+    protobuf files("src/main/resources/proto")
 }
 
 def generatedProtoFilesPath = "${projectDir}/build/generated/sources/proto"
@@ -17,7 +17,7 @@ protobuf {
     }
     plugins {
         grpc {
-            artifact = "io.grpc:protoc-gen-grpc-java:1.43.2"
+            artifact = "io.grpc:protoc-gen-grpc-java:$protocGenGrpcJavaVersion"
         }
     }
     generateProtoTasks {

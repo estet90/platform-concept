@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.concurrent.TimeUnit;
 
+import static io.quarkus.grpc.stubs.ClientCalls.oneToOne;
+
 @RequiredArgsConstructor
 public class DynamicGrpcClient {
     private final Channel channel;
@@ -21,7 +23,7 @@ public class DynamicGrpcClient {
                         methodDescriptor,
                         CallOptions.DEFAULT.withDeadline(Deadline.after(deadline, TimeUnit.MILLISECONDS))
                 );
-        return io.quarkus.grpc.runtime.ClientCalls.oneToOne(
+        return oneToOne(
                 request,
                 (message, streamObserver) -> io.grpc.stub.ClientCalls.asyncUnaryCall(call, message, streamObserver)
         );

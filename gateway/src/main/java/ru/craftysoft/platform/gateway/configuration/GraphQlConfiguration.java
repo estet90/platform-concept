@@ -19,7 +19,7 @@ public class GraphQlConfiguration {
 
     @SneakyThrows
     private String parse() {
-        var graphqlAsBytes = Objects.requireNonNull(GraphQlConfiguration.class.getResourceAsStream("/gateway.graphqls"))
+        var graphqlAsBytes = Objects.requireNonNull(GraphQlConfiguration.class.getResourceAsStream("/graphql/temp.graphqls"))
                 .readAllBytes();
         return new String(graphqlAsBytes, StandardCharsets.UTF_8);
     }
