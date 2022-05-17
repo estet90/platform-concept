@@ -10,8 +10,6 @@ dependencies {
             "io.vertx:vertx-web-graphql",
             "com.google.protobuf:protobuf-java-util",
             "com.fasterxml.jackson.core:jackson-databind",
-            "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-            "com.atlassian:nadel:$nadelVersion"
     )
     compileOnly("org.projectlombok:lombok:$lombokVersion")
     annotationProcessor("org.projectlombok:lombok:$lombokVersion")

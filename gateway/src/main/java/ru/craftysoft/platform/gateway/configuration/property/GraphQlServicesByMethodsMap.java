@@ -9,4 +9,6 @@ public interface GraphQlServicesByMethodsMap {
 
     Map<String, String> servicesByMethods();
 
+    Map<String, String> contractsByServices();
+
 }

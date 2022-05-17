@@ -10,10 +10,14 @@ import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 import io.vertx.ext.web.handler.graphql.GraphQLHandlerOptions;
 import lombok.RequiredArgsConstructor;
 import ru.craftysoft.platform.gateway.configuration.GraphQlFactory;
+import ru.craftysoft.platform.gateway.configuration.property.GraphQlServicesByMethodsMap;
 import ru.craftysoft.platform.gateway.resolver.MainResolver;
 
 import javax.enterprise.context.ApplicationScoped;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 import static ru.craftysoft.platform.gateway.configuration.RouterConfiguration.GRAPHQL_ROUTE_PATH;
@@ -25,6 +29,8 @@ public class MainHandler {
     private final GraphQL graphQl;
     private final Router router;
     private final MainResolver mainResolver;
+    private final GraphQlServicesByMethodsMap graphQlServersByMethods;
+
     private final GraphQLHandlerOptions graphQlHandlerOptions = new GraphQLHandlerOptions()
             .setRequestMultipartEnabled(true)
             .setRequestBatchingEnabled(true);
@@ -34,13 +40,27 @@ public class MainHandler {
     }
 
     public void refreshHandle(RoutingContext routingContext) {
-        invalidateCache().subscribe().asCompletionStage();
+        var serviceName = routingContext.queryParams().get("service");
+        if (serviceName == null) {
+            throw new IllegalArgumentException("Не передан query-параметр 'serviceName'");
+        }
+        var isExists = graphQlServersByMethods.contractsByServices().containsKey(serviceName);
+        if (!isExists) {
+            throw new IllegalArgumentException("Контракт с serviceName='%s' не существует".formatted(serviceName));
+        }
+        var paths = graphQlServersByMethods.contractsByServices().entrySet().stream()
+                .filter(entry -> !serviceName.equals(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .collect(Collectors.toList());
+        var graphqls = new ArrayList<>(GraphQlFactory.parse(paths));
         var contract = ofNullable(routingContext.getBody())
                 .map(Buffer::getBytes)
                 .map(bytes -> new String(bytes, StandardCharsets.UTF_8))
                 .orElseThrow();
-        var newGraphQl = GraphQlFactory.graphQl(mainResolver::resolve, contract);
+        graphqls.add(contract);
+        var newGraphQl = GraphQlFactory.graphQlFromContracts(mainResolver::resolve, graphqls);
         var newGraphQlHandler = GraphQLHandler.create(newGraphQl, graphQlHandlerOptions);
+        invalidateCache().subscribe().asCompletionStage();
         router.getRoutes().stream()
                 .filter(route -> GRAPHQL_ROUTE_PATH.equals(route.getName()))
                 .findFirst()

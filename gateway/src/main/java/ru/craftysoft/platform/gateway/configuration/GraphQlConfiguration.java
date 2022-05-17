@@ -1,26 +1,17 @@
 package ru.craftysoft.platform.gateway.configuration;
 
 import graphql.GraphQL;
-import lombok.SneakyThrows;
+import ru.craftysoft.platform.gateway.configuration.property.GraphQlServicesByMethodsMap;
 import ru.craftysoft.platform.gateway.resolver.MainResolver;
 
 import javax.enterprise.context.ApplicationScoped;
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
 
 @ApplicationScoped
 public class GraphQlConfiguration {
 
     @ApplicationScoped
-    public GraphQL graphQl(MainResolver mainResolver) {
-        var contract = parse();
-        return GraphQlFactory.graphQl(mainResolver::resolve, contract);
+    public GraphQL graphQl(MainResolver mainResolver, GraphQlServicesByMethodsMap graphQlServersByMethods) {
+        return GraphQlFactory.graphQlFromPaths(mainResolver::resolve, graphQlServersByMethods.contractsByServices().values());
     }
 
-    @SneakyThrows
-    private String parse() {
-        var graphqlAsBytes = Objects.requireNonNull(GraphQlConfiguration.class.getResourceAsStream("/graphql/temp.graphqls"))
-                .readAllBytes();
-        return new String(graphqlAsBytes, StandardCharsets.UTF_8);
-    }
 }

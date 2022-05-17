@@ -24,13 +24,13 @@ public class ResponseBuilder {
                 : buildMap(dynamicMessage);
     }
 
-    public Map<String, Object> buildMap(DynamicMessage dynamicMessage) {
+    private Map<String, Object> buildMap(DynamicMessage dynamicMessage) {
         var result = new HashMap<String, Object>();
         dynamicMessage.getAllFields().forEach(((fieldDescriptor, o) -> fillResponse(fieldDescriptor, o, result)));
         return result;
     }
 
-    public List<Object> buildList(DynamicMessage dynamicMessage) {
+    private List<Object> buildList(DynamicMessage dynamicMessage) {
         var result = new ArrayList<>();
         dynamicMessage.getAllFields().values().forEach((o -> fillResponse(o, result)));
         return result;
