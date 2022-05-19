@@ -1,0 +1,18 @@
+dependencies {
+    implementation(
+            platform("io.quarkus.platform:quarkus-amazon-services-bom:$quarkusVersion"),
+
+            project(":schema-registry:schema-registry-api"),
+            project(":schema-registry:schema-registry-db"),
+
+            "io.quarkus:quarkus-config-yaml",
+            "io.quarkus:quarkus-reactive-pg-client",
+            "io.quarkus:quarkus-smallrye-context-propagation",
+            "io.quarkus:quarkus-smallrye-opentracing",
+            "io.quarkiverse.amazonservices:quarkus-amazon-s3",
+
+            "software.amazon.awssdk:netty-nio-client",
+    )
+    compileOnly("org.projectlombok:lombok:$lombokVersion")
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+}

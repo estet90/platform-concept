@@ -1,0 +1,29 @@
+s3:
+  bucket: schema-registry
+
+quarkus:
+
+  datasource:
+    reactive:
+      url: postgres://localhost:5432/schema_registry
+    username: schema_registry_user
+    password: user
+
+  log:
+    level: INFO
+    console:
+      format: "%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c] (%t) %X %s%e%n"
+    category:
+      "ru.craftysoft":
+        min-level: TRACE
+        level: TRACE
+
+  s3:
+    endpoint-override: http://localhost:9000
+    aws:
+      credentials:
+        type: static
+        static-provider:
+          access-key-id: admin
+          secret-access-key: password
+      region: us-east-1

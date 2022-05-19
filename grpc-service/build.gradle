@@ -4,8 +4,10 @@ plugins {
 
 dependencies {
     implementation(
-            "io.quarkus:quarkus-grpc"
+            "io.quarkus:quarkus-grpc",
+            project(":proto-model"),
     )
+    quarkusDev "io.quarkus:quarkus-vertx-http"
     protobuf files("src/main/resources/proto")
 }
 

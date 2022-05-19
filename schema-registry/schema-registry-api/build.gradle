@@ -1,0 +1,50 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
+plugins {
+    id "org.openapi.generator" version "5.4.0"
+    id "java-library"
+}
+
+dependencies {
+    api (
+            "io.quarkus:quarkus-resteasy-reactive-jackson",
+            "io.quarkus:quarkus-hibernate-validator",
+            "com.google.code.findbugs:jsr305",
+            "io.swagger:swagger-annotations:$swaggerAnnotationsVersion",
+            "javax.annotation:javax.annotation-api:$javaxAnnotationApiVersion",
+
+    )
+}
+
+def generatedFilesPath = "$projectDir/build/generated/sources"
+def generatedOpenapiFilesPath = "$generatedFilesPath/openapi"
+
+task generateRestApiWrap() {
+    def openapiInputFolder = "$projectDir/src/main/resources/openapi"
+    def openapiInputSpec = "$openapiInputFolder/schema-registry.yaml"
+    inputs.file("$openapiInputSpec")
+    outputs.dir("$generatedOpenapiFilesPath")
+    doLast {
+        task generateRestApi(type: GenerateTask) {
+            generatorName = "jaxrs-spec"
+            inputSpec = "$openapiInputSpec"
+            templateDir = "$openapiInputFolder/template"
+            outputDir = "$generatedOpenapiFilesPath"
+            modelPackage = "ru.craftysoft.schemaregistry.model.rest"
+            apiPackage = "ru.craftysoft.schemaregistry.controller"
+            generateModelTests = false
+            configOptions = [
+                    openApiNullable: "false",
+                    dateLibrary    : "java8",
+                    interfaceOnly  : "true",
+            ]
+        }
+        generateRestApi.doWork()
+    }
+}
+
+sourceSets.main.java.srcDirs("$generatedOpenapiFilesPath/src/gen/java")
+
+tasks.withType(JavaCompile) {
+    dependsOn(generateRestApiWrap)
+}

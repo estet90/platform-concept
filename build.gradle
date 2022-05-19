@@ -16,12 +16,8 @@ subprojects {
         implementation platform("io.quarkus:quarkus-bom:$quarkusVersion")
     }
 
-    if ("proto-model" != project.name) {
+    if (!["proto-model", "schema-registry-api"].contains(project.name)) {
         apply plugin: "io.quarkus"
-
-        dependencies {
-            implementation project(":proto-model")
-        }
     }
 
     repositories {

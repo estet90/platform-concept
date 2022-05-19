@@ -35,12 +35,12 @@ public class GraphQlFactory {
     private static final SchemaParser schemaParser = new SchemaParser();
 
     public static <T> GraphQL graphQlFromPaths(Function<DataFetchingEnvironment, Future<T>> dataFetcher, Collection<String> paths) {
-        var graphqls = parse(paths);
-        return graphQlFromContracts(dataFetcher, graphqls);
+        var schemas = parse(paths);
+        return graphQlFromContracts(dataFetcher, schemas);
     }
 
-    public static <T> GraphQL graphQlFromContracts(Function<DataFetchingEnvironment, Future<T>> dataFetcher, Collection<String> graphqls) {
-        var typeRegistry = mergeTypeDefinitionRegistry(graphqls);
+    public static <T> GraphQL graphQlFromContracts(Function<DataFetchingEnvironment, Future<T>> dataFetcher, Collection<String> schemas) {
+        var typeRegistry = mergeTypeDefinitionRegistry(schemas);
         var validationRules = ValidationRules.newValidationRules()
                 .onValidationErrorStrategy(OnValidationErrorStrategy.RETURN_NULL)
                 .addRule(new SizeConstraint())
@@ -77,7 +77,7 @@ public class GraphQlFactory {
                 .toList();
     }
 
-    private static TypeDefinitionRegistry mergeTypeDefinitionRegistry(Collection<String> graphqls) {
+    private static TypeDefinitionRegistry mergeTypeDefinitionRegistry(Collection<String> schemas) {
         var typeRegistry = new TypeDefinitionRegistry();
 
         var directives = new HashMap<String, DirectiveDefinition>();
@@ -91,8 +91,8 @@ public class GraphQlFactory {
         var mutationFieldDefinitions = new ArrayList<FieldDefinition>();
         var mutationAdditionalData = new HashMap<String, String>();
 
-        for (var graphql : graphqls) {
-            var currentTypeDefinitionRegistry = schemaParser.parse(graphql);
+        for (var schema : schemas) {
+            var currentTypeDefinitionRegistry = schemaParser.parse(schema);
             currentTypeDefinitionRegistry.schemaDefinition()
                     .ifPresent(currentTypeDefinitionRegistry::remove);
 

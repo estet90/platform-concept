@@ -10,6 +10,7 @@ dependencies {
             "io.vertx:vertx-web-graphql",
             "com.google.protobuf:protobuf-java-util",
             "com.fasterxml.jackson.core:jackson-databind",
+            project(":proto-model"),
     )
     compileOnly("org.projectlombok:lombok:$lombokVersion")
     annotationProcessor("org.projectlombok:lombok:$lombokVersion")
