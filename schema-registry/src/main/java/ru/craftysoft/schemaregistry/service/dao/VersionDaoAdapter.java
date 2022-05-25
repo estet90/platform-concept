@@ -33,6 +33,20 @@ public class VersionDaoAdapter {
                 .failWith(() -> new RuntimeException("Не найдена версия по id=" + id));
     }
 
+    public Uni<VersionsRecord> get(SqlClient sqlClient, long structureId, String name) {
+        return dao.get(sqlClient, structureId, name);
+    }
+
+    public Uni<Long> deleteAndReturnStructureId(SqlClient sqlClient, long id) {
+        return dao.deleteAndReturnStructureId(sqlClient, id)
+                .onItem()
+                .invoke(Unchecked.consumer(structureId -> {
+                    if (structureId == null) {
+                        throw new RuntimeException("Не удалось удалить версию с id=" + id);
+                    }
+                }));
+    }
+
     public Uni<Void> delete(SqlClient sqlClient, long id) {
         return dao.delete(sqlClient, id)
                 .onItem()

@@ -12,7 +12,35 @@ dependencies {
             "io.quarkiverse.amazonservices:quarkus-amazon-s3",
 
             "software.amazon.awssdk:netty-nio-client",
+
+            "com.google.code.findbugs:jsr305",
     )
-    compileOnly("org.projectlombok:lombok:$lombokVersion")
-    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+    ["org.projectlombok:lombok:$lombokVersion"].forEach{
+        compileOnly(it)
+        annotationProcessor(it)
+        testImplementation(it)
+        testAnnotationProcessor(it)
+    }
+    testImplementation(
+            "io.quarkus:quarkus-junit5-mockito",
+
+            "io.rest-assured:rest-assured",
+
+            "org.testcontainers:postgresql",
+            "org.liquibase:liquibase-core",
+            "org.postgresql:postgresql",
+
+            "org.testcontainers:localstack",
+            "com.amazonaws:aws-java-sdk-s3:1.12.225",
+    )
+}
+
+test {
+    useJUnitPlatform {
+        excludeEngines "junit-vintage"
+    }
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
 }

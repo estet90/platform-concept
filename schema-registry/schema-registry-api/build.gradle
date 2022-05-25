@@ -9,10 +9,7 @@ dependencies {
     api (
             "io.quarkus:quarkus-resteasy-reactive-jackson",
             "io.quarkus:quarkus-hibernate-validator",
-            "com.google.code.findbugs:jsr305",
             "io.swagger:swagger-annotations:$swaggerAnnotationsVersion",
-            "javax.annotation:javax.annotation-api:$javaxAnnotationApiVersion",
-
     )
 }
 
@@ -30,8 +27,8 @@ task generateRestApiWrap() {
             inputSpec = "$openapiInputSpec"
             templateDir = "$openapiInputFolder/template"
             outputDir = "$generatedOpenapiFilesPath"
-            modelPackage = "ru.craftysoft.schemaregistry.model.rest"
-            apiPackage = "ru.craftysoft.schemaregistry.controller"
+            modelPackage = "${generatedCodeBasePackage}.model.rest"
+            apiPackage = "${generatedCodeBasePackage}.controller"
             generateModelTests = false
             configOptions = [
                     openApiNullable: "false",

@@ -13,7 +13,6 @@ buildscript {
 }
 
 plugins {
-    id "java"
     id "java-library"
 }
 
@@ -21,7 +20,6 @@ dependencies {
     api("org.jooq:jooq:$jooqVersion") {
         exclude group: "com.sun.activation", module: "jakarta.activation"
     }
-    api("org.postgresql:postgresql:$postgresqlVersion")
 }
 
 def dbUrl = "jdbc:postgresql://localhost:5432/schema_registry"
@@ -29,24 +27,27 @@ def dbUsername = "schema_registry_admin"
 def dbPassword = "admin"
 def schema = "schema_registry"
 
+def jooqOut = "build/jooq/src/main/java"
+
 task migrate() {
-    String[] args = [
-            "--driver=org.postgresql.Driver",
-            "--username=$dbUsername",
-            "--password=$dbPassword",
-            "--url=$dbUrl",
-            "--changeLogFile=/src/main/resources/db/migration/changelog.xml",
-            "--liquibaseSchemaName=$schema",
-            "--classpath=$projectDir/",
-            "migrate"
-    ]
-    def result = new LiquibaseCommandLine().execute(args)
-    if (result != 0) {
-        throw new RuntimeException("Ошибка при выполнении миграций. Код ошибки: ${result}")
+    outputs.dir("$projectDir/$jooqOut")
+    doLast {
+        String[] args = [
+                "--driver=org.postgresql.Driver",
+                "--username=$dbUsername",
+                "--password=$dbPassword",
+                "--url=$dbUrl",
+                "--changeLogFile=/src/main/resources/db/migration/changelog.xml",
+                "--liquibaseSchemaName=$schema",
+                "--classpath=$projectDir/",
+                "migrate"
+        ]
+        def result = new LiquibaseCommandLine().execute(args)
+        if (result != 0) {
+            throw new RuntimeException("Ошибка при выполнении миграций. Код ошибки: ${result}")
+        }
     }
 }
-
-def out = "build/jooq/src/main/java"
 
 task generate() {
     dependsOn migrate
@@ -56,8 +57,8 @@ task generate() {
                             .withName("org.jooq.meta.postgres.PostgresDatabase")
                             .withInputSchema("$schema"))
                     .withTarget(new Target()
-                            .withDirectory(project.file(out).getAbsolutePath())
-                            .withPackageName("ru.craftysoft.schemaregistry.model.jooq"))
+                            .withDirectory(project.file(jooqOut).getAbsolutePath())
+                            .withPackageName("${generatedCodeBasePackage}.model.jooq"))
                     .withGenerate(new Generate()
                             .withJavaTimeTypes(true))
             )
@@ -82,6 +83,6 @@ task sourcesJar(type: Jar) {
 compileJava() {
     dependsOn generate
     sourceSets.main.java {
-        srcDirs out
+        srcDirs jooqOut
     }
 }

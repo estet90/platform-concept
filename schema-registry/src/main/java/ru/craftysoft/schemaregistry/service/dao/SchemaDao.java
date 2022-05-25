@@ -2,7 +2,6 @@ package ru.craftysoft.schemaregistry.service.dao;
 
 import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.sqlclient.SqlClient;
-import io.vertx.mutiny.sqlclient.Tuple;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -12,6 +11,7 @@ import ru.craftysoft.schemaregistry.util.DbClient;
 
 import javax.annotation.Nullable;
 import javax.enterprise.context.ApplicationScoped;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -65,24 +65,19 @@ public class SchemaDao {
         return DbClient.toUniOfSet(sqlClient, log, "SchemaDao.getLinksByVersionsIds", query, row -> row.getString(SCHEMAS.LINK.getName()));
     }
 
-    public Uni<Integer> create(SqlClient sqlClient, Stream<SchemasRecord> records) {
-        var args = records
-                .map(record -> Tuple.of(
-                        record.getVersionId(),
-                        record.getPath(),
-                        record.getLink()
-                ))
+    public Uni<List<Long>> create(SqlClient sqlClient, Stream<SchemasRecord> records) {
+        var queries = records
+                .map(record -> dslContext.insertInto(SCHEMAS).set(record)
+                        .returning(SCHEMAS.ID)
+                )
                 .toList();
-        var sql = """
-                INSERT INTO schema_registry.schemas (version_id, path, link)
-                VALUES ($1, $2, $3)""";
-        return DbClient.executeBatch(sqlClient, log, "SchemaDao.create", sql, args);
+        return DbClient.executeBatch(sqlClient, log, "SchemaDao.create", queries, row -> row.getLong(SCHEMAS.ID.getName()));
     }
 
     public Uni<Set<SchemasRecord>> getByVersionsIds(Set<Long> versionsIds) {
         var query = dslContext.selectFrom(SCHEMAS)
                 .where(SCHEMAS.VERSION_ID.in(versionsIds));
-        return dbClient.toUniOfSet(log, "SchemaDao.getLinksByVersionsIds", query, row -> new SchemasRecord(
+        return dbClient.toUniOfSet(log, "SchemaDao.getByVersionsIds", query, row -> new SchemasRecord(
                 row.getLong(SCHEMAS.ID.getName()),
                 row.getString(SCHEMAS.PATH.getName()),
                 row.getLong(SCHEMAS.VERSION_ID.getName()),

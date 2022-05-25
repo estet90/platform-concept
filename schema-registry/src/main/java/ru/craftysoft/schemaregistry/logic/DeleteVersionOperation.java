@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import ru.craftysoft.schemaregistry.builder.response.AcceptedResponseDataBuilder;
 import ru.craftysoft.schemaregistry.model.rest.AcceptedResponseData;
 import ru.craftysoft.schemaregistry.service.dao.SchemaDaoAdapter;
+import ru.craftysoft.schemaregistry.service.dao.StructureDaoAdapter;
 import ru.craftysoft.schemaregistry.service.dao.VersionDaoAdapter;
 import ru.craftysoft.schemaregistry.service.s3.S3ClientAdapter;
 import ru.craftysoft.schemaregistry.util.OperationWrapper;
@@ -19,6 +20,7 @@ import javax.enterprise.context.ApplicationScoped;
 @Slf4j
 public class DeleteVersionOperation {
 
+    private final StructureDaoAdapter structureDaoAdapter;
     private final VersionDaoAdapter versionDaoAdapter;
     private final SchemaDaoAdapter schemaDaoAdapter;
     private final S3ClientAdapter s3ClientAdapter;
@@ -33,7 +35,8 @@ public class DeleteVersionOperation {
                                 versionDaoAdapter.getLink(sqlClient, id),
                                 schemaDaoAdapter.getLinksByVersionId(sqlClient, id)
                         )
-                        .combinedWith((versionLink, schemasLinks) -> versionDaoAdapter.delete(sqlClient, id)
+                        .combinedWith((versionLink, schemasLinks) -> versionDaoAdapter.deleteAndReturnStructureId(sqlClient, id)
+                                .flatMap(structureId -> structureDaoAdapter.tryDelete(sqlClient, structureId))
                                 .flatMap(v -> s3ClientAdapter.deleteFiles(versionLink, schemasLinks))
                                 .map(v -> responseBuilder.build(1, "Версия успешно удалена"))
                         )

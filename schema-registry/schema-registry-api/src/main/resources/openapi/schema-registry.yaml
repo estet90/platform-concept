@@ -60,11 +60,12 @@ paths:
       parameters:
         - $ref: '#/components/parameters/RequiredStructureNameQuery'
         - $ref: '#/components/parameters/RequiredVersionNameQuery'
+        - $ref: '#/components/parameters/ForceQuery'
       requestBody:
         $ref: '#/components/requestBodies/CreateVersionRequest'
       responses:
         "201":
-          $ref: '#/components/responses/CreatedResponse'
+          $ref: '#/components/responses/CreateVersionResponse'
         default:
           $ref: '#/components/responses/ErrorResponse'
   /structures/versions/{id}:
@@ -131,6 +132,13 @@ components:
       required: true
       schema:
         type: string
+    ForceQuery:
+      name: force
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
     NameQuery:
       name: name
       in: query
@@ -183,12 +191,12 @@ components:
         application/json;charset=UTF-8:
           schema:
             $ref: '#/components/schemas/AcceptedResponseData'
-    CreatedResponse:
+    CreateVersionResponse:
       description: Успех
       content:
         application/json;charset=UTF-8:
           schema:
-            $ref: '#/components/schemas/CreatedResponseData'
+            $ref: '#/components/schemas/CreateVersionResponseData'
     ErrorResponse:
       description: Ошибка
       content:
@@ -265,16 +273,23 @@ components:
           type: integer
         message:
           type: string
-    CreatedResponseData:
+    CreateVersionResponseData:
       required:
-        - id
-        - message
+        - structureId
+        - versionId
+        - schemasIds
       properties:
-        id:
+        structureId:
           type: integer
           format: int64
-        message:
-          type: string
+        versionId:
+          type: integer
+          format: int64
+        schemaIds:
+          type: array
+          items:
+            type: integer
+            format: int64
     ErrorResponseData:
       required:
         - message

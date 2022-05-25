@@ -40,4 +40,8 @@ public class StructureDaoAdapter {
                 .failWith(() -> new RuntimeException("Не найдена структура по id=%s или name=%s".formatted(id, name)));
     }
 
+    public Uni<Integer> tryDelete(SqlClient sqlClient, long id) {
+        return dao.tryDelete(sqlClient, id);
+    }
+
 }

@@ -13,6 +13,7 @@ import javax.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
 
 import static java.util.Optional.ofNullable;
+import static ru.craftysoft.schemaregistry.model.jooq.Tables.VERSIONS;
 import static ru.craftysoft.schemaregistry.model.jooq.tables.Structures.STRUCTURES;
 
 @ApplicationScoped
@@ -51,5 +52,14 @@ public class StructureDao {
                 row.getOffsetDateTime(STRUCTURES.CREATED_AT.getName()),
                 row.getOffsetDateTime(STRUCTURES.UPDATED_AT.getName())
         ));
+    }
+
+    public Uni<Integer> tryDelete(SqlClient sqlClient, long id) {
+        var query = dslContext.deleteFrom(STRUCTURES)
+                .where(
+                        STRUCTURES.ID.eq(id),
+                        dslContext.select(VERSIONS.ID).from(VERSIONS).where(VERSIONS.STRUCTURE_ID.eq(id)).isNull()
+                );
+        return DbClient.execute(sqlClient, log, "tryDelete", query);
     }
 }

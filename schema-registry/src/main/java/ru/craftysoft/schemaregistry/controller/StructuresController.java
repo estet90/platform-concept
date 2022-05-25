@@ -6,7 +6,7 @@ import org.jboss.resteasy.reactive.ResponseHeader;
 import org.jboss.resteasy.reactive.ResponseStatus;
 import ru.craftysoft.schemaregistry.logic.*;
 import ru.craftysoft.schemaregistry.model.rest.AcceptedResponseData;
-import ru.craftysoft.schemaregistry.model.rest.CreatedResponseData;
+import ru.craftysoft.schemaregistry.model.rest.CreateVersionResponseData;
 import ru.craftysoft.schemaregistry.model.rest.GetStructureDescriptorResponseData;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -29,10 +29,11 @@ public class StructuresController implements StructuresApi {
 
     @ResponseStatus(CREATED)
     @Override
-    public Uni<CreatedResponseData> createVersion(String structureName,
-                                                  String versionName,
-                                                  File body) {
-        return createVersionOperation.process(structureName, versionName, body);
+    public Uni<CreateVersionResponseData> createVersion(String structureName,
+                                                        String versionName,
+                                                        Boolean force,
+                                                        File body) {
+        return createVersionOperation.process(structureName, versionName, force, body);
     }
 
     @ResponseStatus(ACCEPTED)

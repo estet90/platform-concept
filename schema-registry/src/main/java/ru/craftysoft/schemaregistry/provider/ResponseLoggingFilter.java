@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
@@ -18,7 +18,6 @@ import static java.util.Optional.ofNullable;
 import static javax.ws.rs.core.HttpHeaders.CONTENT_TYPE;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
-//@Priority(Integer.MIN_VALUE + 50)
 @Provider
 @Slf4j
 @ApplicationScoped
@@ -40,18 +39,11 @@ public class ResponseLoggingFilter implements ContainerResponseFilter {
             var headers = responseContext.getHeaders();
             if (responseLogger.isTraceEnabled()) {
                 var body = extractBody(responseContext);
-                if (body != null) {
-                    responseLogger.trace("""
-                            status={}
-                            headers={}
-                            body={}
-                            time={}""", status, headers, body, time);
-                } else {
-                    responseLogger.trace("""
-                            status={}
-                            headers={}
-                            time={}""", status, headers, time);
-                }
+                responseLogger.trace("""
+                        status={}
+                        headers={}
+                        body={}
+                        time={}""", status, headers, body, time);
             } else {
                 responseLogger.debug("""
                         status={}
@@ -61,7 +53,7 @@ public class ResponseLoggingFilter implements ContainerResponseFilter {
         }
     }
 
-    @Nullable
+    @Nonnull
     private Object extractBody(ContainerResponseContext responseContext) {
         try {
             return ofNullable(responseContext.getEntity())
@@ -75,15 +67,15 @@ public class ResponseLoggingFilter implements ContainerResponseFilter {
                                     return objectMapper.writeValueAsString(responseContext.getEntity());
                                 } catch (Exception e) {
                                     log.error("thrown", e);
-                                    return null;
+                                    return "thrown %s".formatted(e.getMessage());
                                 }
                             })
                             .map(Object.class::cast)
                             .orElse(entity)
-                    ).orElse(null);
+                    ).orElse("nobody");
         } catch (Exception e) {
             log.error("thrown", e);
-            return null;
+            return "thrown %s".formatted(e.getMessage());
         }
     }
 }

@@ -14,6 +14,8 @@ import ru.craftysoft.schemaregistry.model.jooq.tables.records.VersionsRecord;
 import javax.annotation.Nullable;
 import javax.enterprise.context.ApplicationScoped;
 import java.io.File;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,12 +43,12 @@ public class SchemaDaoAdapter {
                 )));
     }
 
-    public Uni<Set<Schema>> create(SqlClient sqlClient, Version version, File body) {
+    public Uni<Map.Entry<List<Long>, Set<Schema>>> create(SqlClient sqlClient, Version version, File body) {
         return vertx.executeBlocking(Uni.createFrom().item(() -> schemaBuilder.build(version, body)))
                 .flatMap(schemas -> {
                     var records = schemasRecordBuilder.build(schemas);
                     return dao.create(sqlClient, records)
-                            .replaceWith(schemas);
+                            .map(ids -> Map.entry(ids, schemas));
                 });
     }
 

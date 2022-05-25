@@ -38,6 +38,33 @@ public class VersionDao {
         return DbClient.toUni(sqlClient, log, "VersionDao.getLink", query, row -> row.getString(VERSIONS.LINK.getName()));
     }
 
+    public Uni<VersionsRecord> get(SqlClient sqlClient, long structureId, String name) {
+        var query = dslContext
+                .select(
+                        VERSIONS.ID,
+                        VERSIONS.LINK
+                )
+                .from(VERSIONS)
+                .where(
+                        VERSIONS.STRUCTURE_ID.eq(structureId),
+                        VERSIONS.NAME.eq(name)
+                );
+        return DbClient.toUni(sqlClient, log, "VersionDao.getLink", query, row -> new VersionsRecord(
+                row.getLong(VERSIONS.ID.getName()),
+                name,
+                structureId,
+                row.getString(VERSIONS.LINK.getName()),
+                null
+        ));
+    }
+
+    public Uni<Long> deleteAndReturnStructureId(SqlClient sqlClient, long id) {
+        var query = dslContext.deleteFrom(VERSIONS)
+                .where(VERSIONS.ID.eq(id))
+                .returning(VERSIONS.STRUCTURE_ID);
+        return DbClient.toUni(sqlClient, log, "VersionDao.delete", query, row -> row.getLong(VERSIONS.STRUCTURE_ID.getName()));
+    }
+
     public Uni<Integer> delete(SqlClient sqlClient, long id) {
         var query = dslContext.deleteFrom(VERSIONS)
                 .where(VERSIONS.ID.eq(id));

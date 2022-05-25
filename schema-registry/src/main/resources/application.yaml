@@ -3,6 +3,9 @@ s3:
 
 quarkus:
 
+  http:
+    root-path: /schema-registry/api/v1
+
   datasource:
     reactive:
       url: postgres://localhost:5432/schema_registry
@@ -17,6 +20,8 @@ quarkus:
       "ru.craftysoft":
         min-level: TRACE
         level: TRACE
+      "org.jooq.Constants":
+        level: WARN
 
   s3:
     endpoint-override: http://localhost:9000

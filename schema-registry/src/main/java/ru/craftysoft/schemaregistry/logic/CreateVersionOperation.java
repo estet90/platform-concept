@@ -5,8 +5,8 @@ import io.vertx.mutiny.pgclient.PgPool;
 import io.vertx.mutiny.sqlclient.SqlClientHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import ru.craftysoft.schemaregistry.builder.response.CreatedResponseDataBuilder;
-import ru.craftysoft.schemaregistry.model.rest.CreatedResponseData;
+import ru.craftysoft.schemaregistry.builder.response.CreateVersionResponseDataBuilder;
+import ru.craftysoft.schemaregistry.model.rest.CreateVersionResponseData;
 import ru.craftysoft.schemaregistry.service.dao.SchemaDaoAdapter;
 import ru.craftysoft.schemaregistry.service.dao.StructureDaoAdapter;
 import ru.craftysoft.schemaregistry.service.dao.VersionDaoAdapter;
@@ -15,6 +15,8 @@ import ru.craftysoft.schemaregistry.util.OperationWrapper;
 
 import javax.enterprise.context.ApplicationScoped;
 import java.io.File;
+
+import static java.util.Optional.ofNullable;
 
 @ApplicationScoped
 @RequiredArgsConstructor
@@ -26,20 +28,31 @@ public class CreateVersionOperation {
     private final SchemaDaoAdapter schemaDaoAdapter;
     private final S3ClientAdapter s3ClientAdapter;
     private final PgPool pgPool;
-    private final CreatedResponseDataBuilder responseBuilder;
+    private final CreateVersionResponseDataBuilder responseBuilder;
 
-    public Uni<CreatedResponseData> process(String structureName, String versionName, File body) {
+    public Uni<CreateVersionResponseData> process(String structureName, String versionName, boolean force, File body) {
         return OperationWrapper.wrap(
                 log, "CreateVersionOperation.process",
                 () -> SqlClientHelper.inTransactionUni(pgPool, sqlClient -> structureDaoAdapter.upsert(sqlClient, structureName)
-                                .flatMap(id -> versionDaoAdapter.create(sqlClient, id, versionName))
-                                .flatMap(version -> schemaDaoAdapter.create(sqlClient, version, body)
-                                        .flatMap(schemas -> s3ClientAdapter.createVersion(version, body, schemas))
-                                        .replaceWith(version))
-                        )
-                        .map(version -> responseBuilder.build(version.id(), "Схема создана успешно")),
-                () -> "structureName='%s' versionName='%s'".formatted(structureName, versionName),
-                response -> "id=%s".formatted(response.getId())
+                        .flatMap(structureId -> {
+                            var createVersionUni = versionDaoAdapter.create(sqlClient, structureId, versionName)
+                                    .flatMap(version -> schemaDaoAdapter.create(sqlClient, version, body)
+                                            .flatMap(schemasWithIds -> s3ClientAdapter.createVersion(version, body, schemasWithIds.getValue())
+                                                    .map(ignored -> responseBuilder.build(structureId, version, schemasWithIds.getKey())))
+                                    );
+                            return force
+                                    ? versionDaoAdapter.get(sqlClient, structureId, versionName)
+                                    .flatMap(version -> ofNullable(version)
+                                            .map(v -> schemaDaoAdapter.getLinksByVersionId(sqlClient, v.getId())
+                                                    .flatMap(schemasLinks -> versionDaoAdapter.delete(sqlClient, v.getId())
+                                                            .flatMap(ignored -> s3ClientAdapter.deleteFiles(v.getLink(), schemasLinks))
+                                                            .flatMap(ignored -> createVersionUni)))
+                                            .orElse(createVersionUni))
+                                    : createVersionUni;
+                        })),
+                () -> "structureName='%s' versionName='%s' force='%s'".formatted(structureName, versionName, force),
+                response -> "structureId=%s versionId=%s schemasIds=%s"
+                        .formatted(response.getStructureId(), response.getVersionId(), response.getSchemaIds())
         );
     }
 

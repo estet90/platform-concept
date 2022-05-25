@@ -1,7 +1,5 @@
 package ru.craftysoft.schemaregistry.provider;
 
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -11,20 +9,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
+import javax.annotation.Nonnull;
 import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
+import static javax.ws.rs.core.HttpHeaders.CONTENT_TYPE;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static javax.ws.rs.core.MediaType.TEXT_PLAIN;
 import static ru.craftysoft.schemaregistry.util.MdcUtils.withMdcRun;
 
-//@Priority(Integer.MIN_VALUE + 50)
 @Provider
 @Slf4j
 @ApplicationScoped
@@ -51,26 +53,15 @@ public class RequestLoggingFilter implements ContainerRequestFilter {
             var url = resolveUrl(containerRequestContext);
             if (requestLogger.isTraceEnabled()) {
                 var mdc = MDC.getCopyOfContextMap();
-                vertx.executeBlocking((Handler<Promise<byte[]>>) event -> withMdcRun(mdc, () -> {
-                    try (var bodyStream = containerRequestContext.getEntityStream()) {
-                        var bytes = bodyStream.readAllBytes();
-                        var hasBody = bytes != null && bytes.length > 0;
-                        var body = hasBody
-                                ? new String(bytes, StandardCharsets.UTF_8)
-                                : "nobody";
-                        requestLogger.trace("""
-                                method={}
-                                url={}
-                                headers={}
-                                body={}""", requestContext.getMethod(), url, headers, body);
-                        if (hasBody) {
-                            containerRequestContext.setEntityStream(new ByteArrayInputStream(bytes));
-                        }
-                        containerRequestContext.resume();
-                        event.complete();
-                    } catch (IOException e) {
-                        event.fail(e);
-                    }
+                vertx.executeBlocking(event -> withMdcRun(mdc, () -> {
+                    var body = extractBody(containerRequestContext, headers);
+                    requestLogger.trace("""
+                            method={}
+                            url={}
+                            headers={}
+                            body={}""", requestContext.getMethod(), url, headers, body);
+                    containerRequestContext.resume();
+                    event.complete();
                 })).result();
             } else {
                 requestLogger.debug("""
@@ -79,6 +70,34 @@ public class RequestLoggingFilter implements ContainerRequestFilter {
                         headers={}""", requestContext.getMethod(), url, headers);
                 containerRequestContext.resume();
             }
+        }
+    }
+
+    @Nonnull
+    private String extractBody(ResteasyReactiveContainerRequestContext containerRequestContext, MultivaluedMap<String, String> headers) {
+        try {
+            var hasBodyForLogging = false;
+            var contentTypes = headers.getOrDefault(CONTENT_TYPE, List.of());
+            for (var contentType : contentTypes) {
+                if (contentType.contains(APPLICATION_JSON) || contentType.contains(TEXT_PLAIN)) {
+                    hasBodyForLogging = true;
+                    break;
+                }
+            }
+            var body = "nobody";
+            if (hasBodyForLogging) {
+                try (var bodyStream = containerRequestContext.getEntityStream()) {
+                    var bytes = bodyStream.readAllBytes();
+                    if (bytes != null && bytes.length > 0) {
+                        body = new String(bytes, StandardCharsets.UTF_8);
+                        containerRequestContext.setEntityStream(new ByteArrayInputStream(bytes));
+                    }
+                }
+            }
+            return body;
+        } catch (Exception e) {
+            log.error("thrown", e);
+            return "thrown %s".formatted(e.getMessage());
         }
     }
 

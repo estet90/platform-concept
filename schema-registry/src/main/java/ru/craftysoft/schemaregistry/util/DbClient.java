@@ -20,18 +20,31 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static ru.craftysoft.schemaregistry.util.DbLoggerHelper.*;
+import static ru.craftysoft.schemaregistry.util.UuidUtils.generateDefaultUuid;
 
 @RequiredArgsConstructor
 public class DbClient {
 
     private final PgPool pgPool;
 
+    public <T> Uni<List<T>> executeBatch(Logger log, String point, Collection<? extends Query> queries, Function<Row, T> mapper) {
+        return executeBatch(pgPool, log, point, queries, mapper);
+    }
+
+    public static <T> Uni<List<T>> executeBatch(SqlClient sqlClient, Logger log, String point, Collection<? extends Query> queries, Function<Row, T> mapper) {
+        var sql = extractSql(queries.iterator().next());
+        var args = queries.stream()
+                .map(DbClient::extractArgs)
+                .toList();
+        return executeBatch(sqlClient, log, point, sql, args, mapper);
+    }
+
     public <T> Uni<List<T>> executeBatch(Logger log, String point, String sql, List<Tuple> args, Function<Row, T> mapper) {
         return executeBatch(pgPool, log, point, sql, args, mapper);
     }
 
     public static <T> Uni<List<T>> executeBatch(SqlClient sqlClient, Logger log, String point, String sql, List<Tuple> args, Function<Row, T> mapper) {
-        var queryId = UUID.randomUUID().toString();
+        var queryId = generateDefaultUuid();
         logIn(log, point, queryId, sql, args);
         return sqlClient.preparedQuery(sql).executeBatch(args)
                 .onFailure().invoke(e -> logError(log, point, queryId, e))
@@ -47,12 +60,24 @@ public class DbClient {
                 });
     }
 
+    public Uni<Integer> executeBatch(Logger log, String point, Collection<? extends Query> queries) {
+        return executeBatch(pgPool, log, point, queries);
+    }
+
+    public static Uni<Integer> executeBatch(SqlClient sqlClient, Logger log, String point, Collection<? extends Query> queries) {
+        var sql = extractSql(queries.iterator().next());
+        var args = queries.stream()
+                .map(DbClient::extractArgs)
+                .toList();
+        return executeBatch(sqlClient, log, point, sql, args);
+    }
+
     public Uni<Integer> executeBatch(Logger log, String point, String sql, List<Tuple> args) {
         return executeBatch(pgPool, log, point, sql, args);
     }
 
     public static Uni<Integer> executeBatch(SqlClient sqlClient, Logger log, String point, String sql, List<Tuple> args) {
-        var queryId = UUID.randomUUID().toString();
+        var queryId = generateDefaultUuid();
         logIn(log, point, queryId, sql, args);
         return sqlClient.preparedQuery(sql).executeBatch(args)
                 .onFailure().invoke(e -> logError(log, point, queryId, e))
@@ -83,7 +108,7 @@ public class DbClient {
     }
 
     public static Uni<Integer> execute(SqlClient sqlClient, Logger log, String point, String sql, Tuple args) {
-        var queryId = UUID.randomUUID().toString();
+        var queryId = generateDefaultUuid();
         logIn(log, point, queryId, sql, args);
         return sqlClient.preparedQuery(sql).execute(args)
                 .onFailure().invoke(e -> logError(log, point, queryId, e))
@@ -108,7 +133,7 @@ public class DbClient {
     }
 
     public static <T> Multi<T> toMulti(SqlClient sqlClient, Logger log, String point, String sql, Tuple args, Function<Row, T> mapper) {
-        var queryId = UUID.randomUUID().toString();
+        var queryId = generateDefaultUuid();
         logIn(log, point, queryId, sql, args);
         return sqlClient.preparedQuery(sql).execute(args)
                 .onFailure().invoke(e -> logError(log, point, queryId, e))
@@ -139,7 +164,7 @@ public class DbClient {
     }
 
     public static <T> Uni<T> toUni(SqlClient sqlClient, Logger log, String point, String sql, Tuple args, Function<Row, T> mapper) {
-        var queryId = UUID.randomUUID().toString();
+        var queryId = generateDefaultUuid();
         logIn(log, point, queryId, sql, args);
         return sqlClient.preparedQuery(sql).execute(args)
                 .onFailure().invoke(e -> logError(log, point, queryId, e))
@@ -199,7 +224,7 @@ public class DbClient {
                                                                                           Function<Row, T> mapper,
                                                                                           Supplier<COLLECTION> empty,
                                                                                           Supplier<COLLECTION> initializer) {
-        var queryId = UUID.randomUUID().toString();
+        var queryId = generateDefaultUuid();
         logIn(log, point, queryId, sql, args);
         return sqlClient.preparedQuery(sql).execute(args)
                 .onFailure().invoke(e -> logError(log, point, queryId, e))
