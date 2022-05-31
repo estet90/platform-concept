@@ -1,7 +1,8 @@
-package ru.craftysoft.platform.gateway.handler;
+package ru.craftysoft.platform.gateway.controller;
 
 import graphql.GraphQL;
 import io.quarkus.cache.CacheInvalidateAll;
+import io.quarkus.vertx.web.Route;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.Router;
@@ -20,11 +21,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
-import static ru.craftysoft.platform.gateway.configuration.RouterConfiguration.GRAPHQL_ROUTE_PATH;
 
 @ApplicationScoped
 @RequiredArgsConstructor
-public class MainHandler {
+public class MainController {
 
     private final GraphQL graphQl;
     private final Router router;
@@ -35,11 +35,15 @@ public class MainHandler {
             .setRequestMultipartEnabled(true)
             .setRequestBatchingEnabled(true);
 
-    public void graphqlHandle(RoutingContext routingContext) {
+    private static final String GRAPHQL_ROUTE_PATH = "/graphql";
+
+    @Route(path = GRAPHQL_ROUTE_PATH)
+    public void graphql(RoutingContext routingContext) {
         GraphQLHandler.create(graphQl, graphQlHandlerOptions).handle(routingContext);
     }
 
-    public void refreshHandle(RoutingContext routingContext) {
+    @Route(path = "/refresh", methods = Route.HttpMethod.POST)
+    public void refresh(RoutingContext routingContext) {
         var serviceName = routingContext.queryParams().get("service");
         if (serviceName == null) {
             throw new IllegalArgumentException("Не передан query-параметр 'serviceName'");
